@@ -1,0 +1,294 @@
+import { useState } from 'react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
+import TopNavigation from '@/components/layout/TopNavigation'
+import FooterSection from '@/components/sections/FooterSection'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Bell, 
+  CheckCircle2, 
+  Calendar, 
+  XCircle, 
+  FileText, 
+  Clock, 
+  ArrowLeft,
+  Trash2,
+  CheckCheck
+} from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '@/contexts/ToastContext'
+
+const NotificationsPage = () => {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const [filter, setFilter] = useState('all')
+
+  // Fetch notifications with real-time updates
+  const notifications = useQuery(
+    api.notifications.getNotificationsByUser,
+    user?._id ? { userId: user._id } : 'skip'
+  )
+
+  // Get unread count
+  const unreadCount = useQuery(
+    api.notifications.getUnreadCount,
+    user?._id ? { userId: user._id } : 'skip'
+  )
+
+  // Mutations
+  const markAsRead = useMutation(api.notifications.markAsRead)
+  const markAllAsRead = useMutation(api.notifications.markAllAsRead)
+  const deleteNotification = useMutation(api.notifications.deleteNotification)
+
+  // Filter notifications
+  const filteredNotifications = Array.isArray(notifications) 
+    ? notifications.filter(notif => filter === 'all' || !notif.read)
+    : []
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markAsRead({ notificationId })
+      toast.success('Notification marked as read')
+    } catch (error) {
+      toast.error('Failed to mark notification as read', error.message)
+    }
+  }
+
+  const handleMarkAllAsRead = async () => {
+    if (!user?._id) return
+    try {
+      await markAllAsRead({ userId: user._id })
+      toast.success('All notifications marked as read')
+    } catch (error) {
+      toast.error('Failed to mark all as read', error.message)
+    }
+  }
+
+  const handleDelete = async (notificationId) => {
+    try {
+      await deleteNotification({ notificationId })
+      toast.success('Notification deleted')
+    } catch (error) {
+      toast.error('Failed to delete notification', error.message)
+    }
+  }
+
+  const handleNotificationClick = (notification) => {
+    // Mark as read if unread
+    if (!notification.read) {
+      handleMarkAsRead(notification._id)
+    }
+
+    // Navigate to action URL if available
+    if (notification.actionUrl) {
+      navigate(notification.actionUrl)
+    }
+  }
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'appointment_created':
+      case 'appointment_confirmed':
+      case 'appointment_completed':
+        return <Calendar className="h-5 w-5 text-[#10B981]" />
+      case 'appointment_cancelled':
+        return <XCircle className="h-5 w-5 text-[#EF4444]" />
+      case 'appointment_reminder':
+        return <Clock className="h-5 w-5 text-[#F59E0B]" />
+      case 'prescription_added':
+      case 'medical_record_added':
+        return <FileText className="h-5 w-5 text-[#3B82F6]" />
+      default:
+        return <Bell className="h-5 w-5 text-[#2AA8FF]" />
+    }
+  }
+
+  const getNotificationColor = (type) => {
+    switch (type) {
+      case 'appointment_created':
+      case 'appointment_confirmed':
+      case 'appointment_completed':
+        return 'bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20'
+      case 'appointment_cancelled':
+        return 'bg-[#EF4444]/10 text-[#EF4444] border-[#EF4444]/20'
+      case 'appointment_reminder':
+        return 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20'
+      case 'prescription_added':
+      case 'medical_record_added':
+        return 'bg-[#3B82F6]/10 text-[#3B82F6] border-[#3B82F6]/20'
+      default:
+        return 'bg-[#2AA8FF]/10 text-[#2AA8FF] border-[#2AA8FF]/20'
+    }
+  }
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(diff / 3600000)
+    const days = Math.floor(diff / 86400000)
+
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`
+    if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`
+    return date.toLocaleDateString()
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#E7F0FF] via-white to-white">
+      <TopNavigation />
+      <main className="mx-auto max-w-4xl px-4 py-8 pt-32">
+        <div className="mb-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="mb-4 border-[#DCE6F5] bg-white text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#102851]">Notifications</h1>
+              <p className="text-[#5C6169] mt-2">
+                {unreadCount !== undefined && unreadCount > 0
+                  ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
+                  : 'All caught up!'}
+              </p>
+            </div>
+            {unreadCount !== undefined && unreadCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleMarkAllAsRead}
+                className="border-[#DCE6F5] bg-white text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]"
+              >
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Mark All Read
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div className="mb-6 flex gap-2">
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            onClick={() => setFilter('all')}
+            className={
+              filter === 'all'
+                ? 'bg-[#2AA8FF] text-white hover:bg-[#1896f0]'
+                : 'border-[#DCE6F5] text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]'
+            }
+          >
+            All
+          </Button>
+          <Button
+            variant={filter === 'unread' ? 'default' : 'outline'}
+            onClick={() => setFilter('unread')}
+            className={
+              filter === 'unread'
+                ? 'bg-[#2AA8FF] text-white hover:bg-[#1896f0]'
+                : 'border-[#DCE6F5] text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]'
+            }
+          >
+            Unread
+            {unreadCount !== undefined && unreadCount > 0 && (
+              <Badge className="ml-2 bg-[#EF4444] text-white">{unreadCount}</Badge>
+            )}
+          </Button>
+        </div>
+
+        {/* Notifications List */}
+        {notifications === undefined ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
+          </div>
+        ) : filteredNotifications.length === 0 ? (
+          <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
+            <CardContent className="py-12 text-center">
+              <Bell className="mx-auto h-16 w-16 text-[#ABB6C7]" />
+              <p className="mt-4 text-lg font-medium text-[#102851]">No notifications</p>
+              <p className="mt-2 text-sm text-[#5C6169]">
+                {filter === 'unread' 
+                  ? 'You have no unread notifications'
+                  : 'You\'re all caught up! No notifications yet.'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filteredNotifications.map((notification) => (
+              <Card
+                key={notification._id}
+                className={`border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)] transition hover:shadow-md cursor-pointer ${
+                  !notification.read ? 'border-l-4 border-l-[#2AA8FF]' : ''
+                }`}
+                onClick={() => handleNotificationClick(notification)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full border ${getNotificationColor(notification.type)}`}>
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className={`font-semibold text-sm ${!notification.read ? 'text-[#102851]' : 'text-[#5C6169]'}`}>
+                              {notification.title}
+                            </h3>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-[#2AA8FF]"></div>
+                            )}
+                          </div>
+                          <p className="text-sm text-[#5C6169] mb-2">{notification.message}</p>
+                          <p className="text-xs text-[#9CA3AF]">{formatTime(notification.createdAt)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleMarkAsRead(notification._id)
+                              }}
+                              className="h-8 w-8 p-0 text-[#5C6169] hover:text-[#102851]"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDelete(notification._id)
+                            }}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </main>
+      <FooterSection />
+    </div>
+  )
+}
+
+export default NotificationsPage
+
