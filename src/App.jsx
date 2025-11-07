@@ -25,7 +25,15 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
-        <Route path="/find-doctors" element={<FindDoctorsPage />} />
+        {/* Protected - Find Doctors (requires login) */}
+        <Route
+          path="/find-doctors"
+          element={
+            <ProtectedRoute allowedRoles={['patient', 'doctor']}>
+              <FindDoctorsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/hospitals" element={<HospitalsPage />} />
         <Route path="/medicines" element={<MedicinesPage />} />
         <Route path="/surgeries" element={<SurgeriesPage />} />
