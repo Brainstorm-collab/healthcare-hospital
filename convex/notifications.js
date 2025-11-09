@@ -42,23 +42,27 @@ export const createNotification = mutation({
 export const getNotificationsByUser = query({
   args: {
     userId: v.id("users"),
-    limit: v.optional(v.number()),
+    paginationOpts: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    let notifications = await ctx.db
+    const { paginationOpts } = args;
+    const pagOpts = paginationOpts ?? {};
+    const pageSize = pagOpts.numItems ?? 12;
+    const page = await ctx.db
       .query("notifications")
       .withIndex("by_user_and_created", (q) => q.eq("userId", args.userId))
-      .collect();
+      .paginate({
+        ...pagOpts,
+        numItems: pageSize,
+      });
 
-    // Sort by createdAt (newest first)
-    notifications.sort((a, b) => b.createdAt - a.createdAt);
+    const sorted = [...page.page].sort((a, b) => b.createdAt - a.createdAt);
 
-    // Apply limit if provided
-    if (args.limit) {
-      notifications = notifications.slice(0, args.limit);
-    }
-
-    return notifications;
+    return {
+      page: sorted,
+      isDone: page.isDone,
+      continueCursor: page.isDone ? undefined : page.continueCursor,
+    };
   },
 });
 

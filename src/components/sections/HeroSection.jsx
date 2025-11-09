@@ -19,12 +19,14 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
+import LoginPromptDialog from '@/components/auth/LoginPromptDialog'
 
 const HeroSection = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -206,7 +208,16 @@ const HeroSection = () => {
               Connect instantly with a 24x7 specialist or choose to video visit a particular doctor.
             </p>
             <div className="flex flex-col gap-4 pt-1 sm:flex-row" id="consult-now-btn">
-              <Button className="h-12 w-[177px] rounded-lg bg-[#2AA8FF] px-9 text-base font-medium tracking-[0.02em] text-white shadow-card hover:bg-[#1896f0]">
+              <Button
+                className="h-12 w-[177px] rounded-lg bg-[#2AA8FF] px-9 text-base font-medium tracking-[0.02em] text-white shadow-card hover:bg-[#1896f0]"
+                onClick={() => {
+                  if (isAuthenticated && user) {
+                    navigate('/find-doctors')
+                  } else {
+                    setShowLoginPrompt(true)
+                  }
+                }}
+              >
                 Consult Now
               </Button>
             </div>
@@ -242,7 +253,9 @@ const HeroSection = () => {
                 src="/7804e5f2776e41d6b125a1ff07effac37d6ff11b.png"
                 alt="Medical specialists"
                 className="mx-auto h-[440px] w-full object-contain"
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = 'https://via.placeholder.com/520x440?text=Doctors';
                 }}
@@ -378,6 +391,11 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
+      <LoginPromptDialog
+        open={showLoginPrompt}
+        onOpenChange={setShowLoginPrompt}
+        message="Please log in to consult with doctors."
+      />
     </section>
   )
 }

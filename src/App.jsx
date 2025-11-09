@@ -17,6 +17,7 @@ import MedicalRecordsPage from '@/pages/MedicalRecordsPage'
 import AllAppointmentsPage from '@/pages/AllAppointmentsPage'
 import PatientListPage from '@/pages/PatientListPage'
 import NotificationsPage from '@/pages/NotificationsPage'
+import CartPage from '@/pages/CartPage'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/hospitals" element={<HospitalsPage />} />
         <Route path="/medicines" element={<MedicinesPage />} />
         <Route path="/surgeries" element={<SurgeriesPage />} />
+        <Route path="/cart" element={<CartPage />} />
         <Route path="/software" element={<SoftwareForProviderPage />} />
         <Route path="/facilities" element={<FacilitiesPage />} />
         <Route path="/login" element={<LoginPage />} />

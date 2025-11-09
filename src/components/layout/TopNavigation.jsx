@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { navLinks } from '@/data/homepage'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
 import UserRoleBadge from '@/components/UserRoleBadge'
 import { LogOut, User as UserIcon, ChevronDown, ShieldCheck, Menu, X } from 'lucide-react'
@@ -10,6 +11,7 @@ const TopNavigation = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { isAuthenticated, user, logout } = useAuth()
+  const { totalItems } = useCart()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -117,6 +119,13 @@ const TopNavigation = () => {
                             className="block rounded-lg px-3 py-2 text-sm font-medium text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851] transition"
                           >
                             Dashboard
+                          </Link>
+                          <Link
+                            to="/cart"
+                            onClick={() => setShowUserMenu(false)}
+                            className="block rounded-lg px-3 py-2 text-sm font-medium text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851] transition"
+                          >
+                            Cart {totalItems > 0 ? `(${totalItems})` : ''}
                           </Link>
                           <button
                             onClick={handleLogout}
@@ -232,6 +241,13 @@ const TopNavigation = () => {
                     className="block rounded-lg border border-[#DCE6F5] px-3 py-2 text-sm font-semibold text-[#102851] hover:bg-[#F5F8FF]"
                   >
                     Dashboard
+                  </Link>
+                  <Link
+                    to="/cart"
+                    onClick={() => setMobileOpen(false)}
+                    className="block rounded-lg border border-[#DCE6F5] px-3 py-2 text-sm font-semibold text-[#102851] hover:bg-[#F5F8FF]"
+                  >
+                    Cart {totalItems > 0 ? `(${totalItems})` : ''}
                   </Link>
                   <Link
                     to="/notifications"

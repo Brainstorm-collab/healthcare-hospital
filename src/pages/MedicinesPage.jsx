@@ -5,9 +5,24 @@ import { ShoppingCart, Pill, AlertCircle } from 'lucide-react'
 import FaqSection from '@/components/sections/FaqSection'
 import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
+import { useCart } from '@/contexts/CartContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
+import LoginPromptDialog from '@/components/auth/LoginPromptDialog'
+import { useToast } from '@/contexts/ToastContext'
 
 const MedicinesPage = () => {
   const theme = useTheme()
+  const { addItem } = useCart()
+  const { isAuthenticated } = useAuth()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const toast = useToast()
+
+  useEffect(() => {
+    if (isAuthenticated && showLoginPrompt) {
+      setShowLoginPrompt(false)
+    }
+  }, [isAuthenticated, showLoginPrompt])
 
   return (
     <div className="min-h-screen" style={{ background: theme.colors.backgroundGradient }}>
@@ -36,12 +51,13 @@ const MedicinesPage = () => {
                     alt={medicine.name}
                     className="h-full w-full object-contain"
                     loading="lazy"
-                    onError={(e) => {
-                      if (!e.currentTarget.dataset.fallbackAttempted) {
-                        e.currentTarget.dataset.fallbackAttempted = 'true'
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=360&h=360&fit=crop&auto=format&q=80'
-                      }
-                    }}
+                  onError={(e) => {
+                    if (!e.currentTarget.dataset.fallbackAttempted) {
+                      e.currentTarget.dataset.fallbackAttempted = 'true'
+                      e.currentTarget.src =
+                        'https://images.unsplash.com/photo-1584036561566-baf8f5f1b144?w=360&h=360&fit=crop&auto=format&q=80'
+                    }
+                  }}
                   />
                   {medicine.prescription && (
                     <div className="absolute top-2 right-2 rounded-full bg-[#FF6B6B] px-2 py-1 text-xs font-semibold text-white">
@@ -78,6 +94,15 @@ const MedicinesPage = () => {
 
                   <button
                     disabled={!medicine.stock}
+                    onClick={() => {
+                      if (!isAuthenticated) {
+                        setShowLoginPrompt(true)
+                        return
+                      }
+                      const updatedPrice = medicine.price - (medicine.price * medicine.discount) / 100
+                      addItem({ id: medicine.id, name: medicine.name, image: medicine.image, price: updatedPrice }, 1)
+                      toast.success('Added to cart', `${medicine.name} has been added to your cart.`)
+                    }}
                     className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2AA8FF] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(42,168,255,0.3)] transition hover:bg-[#1896f0] disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ShoppingCart className="h-4 w-4" />
@@ -93,6 +118,11 @@ const MedicinesPage = () => {
       <FaqSection />
       <AppDownloadSection />
       <FooterSection />
+      <LoginPromptDialog
+        open={showLoginPrompt}
+        onOpenChange={setShowLoginPrompt}
+        message="Please log in to add medicines to your cart."
+      />
     </div>
   )
 }

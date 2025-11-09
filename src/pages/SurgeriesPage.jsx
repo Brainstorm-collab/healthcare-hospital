@@ -5,9 +5,11 @@ import { Clock, Calendar, DollarSign, Stethoscope } from 'lucide-react'
 import FaqSection from '@/components/sections/FaqSection'
 import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
+import { useNavigate } from 'react-router-dom'
 
 const SurgeriesPage = () => {
   const theme = useTheme()
+  const navigate = useNavigate()
   const fallbackImages = [
     'https://images.unsplash.com/photo-1580281657527-47f249e8f4ff?w=800&h=480&fit=crop&auto=format&q=80',
     'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&h=480&fit=crop&auto=format&q=80',
@@ -84,7 +86,10 @@ const SurgeriesPage = () => {
                   </div>
                 </div>
 
-                <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2AA8FF] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(42,168,255,0.3)] transition hover:bg-[#1896f0]">
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2AA8FF] px-6 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(42,168,255,0.3)] transition hover:bg-[#1896f0]"
+                  onClick={() => navigate('/find-doctors')}
+                >
                   <Stethoscope className="h-4 w-4" />
                   Book Consultation
                 </button>

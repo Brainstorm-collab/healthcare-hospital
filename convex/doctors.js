@@ -1,46 +1,89 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 
-// Get all doctors
+const matchesFilters = (doctor, { specialization, location, search }) => {
+  if (doctor.role !== "doctor") return false;
+
+  if (specialization && doctor.specialization !== specialization) {
+    return false;
+  }
+
+  if (location) {
+    const locationLower = location.toLowerCase();
+    if (!(doctor.location || "").toLowerCase().includes(locationLower)) {
+      return false;
+    }
+  }
+
+  if (search) {
+    const searchLower = search.toLowerCase();
+    const haystack = `${doctor.name || ""} ${doctor.specialization || ""} ${doctor.clinic || ""}`.toLowerCase();
+    if (!haystack.includes(searchLower)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+// Get doctors with server-side pagination and filtering
 export const listDoctors = query({
   args: {
     specialization: v.optional(v.string()),
     location: v.optional(v.string()),
     search: v.optional(v.string()),
+    paginationOpts: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    let doctorsQuery = ctx.db
-      .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "doctor"));
+    const { specialization, location, search, paginationOpts } = args;
+    const pagOpts = paginationOpts ?? {};
 
-    const doctors = await doctorsQuery.collect();
-
-    // Filter by specialization if provided
-    let filtered = doctors;
-    if (args.specialization) {
-      filtered = filtered.filter((d) => d.specialization === args.specialization);
+    let baseQuery;
+    if (specialization) {
+      baseQuery = ctx.db
+        .query("users")
+        .withIndex("by_specialization", (q) => q.eq("specialization", specialization));
+    } else {
+      baseQuery = ctx.db
+        .query("users")
+        .withIndex("by_role", (q) => q.eq("role", "doctor"));
     }
 
-    // Filter by location if provided
-    if (args.location) {
-      filtered = filtered.filter((d) =>
-        d.location?.toLowerCase().includes(args.location.toLowerCase())
-      );
-    }
+    const requestedItems = pagOpts.numItems ?? 12;
+    const batchSize = Math.max(requestedItems * 2, 16);
 
-    // Search by name or specialization
-    if (args.search) {
-      const searchLower = args.search.toLowerCase();
-      filtered = filtered.filter(
-        (d) =>
-          d.name.toLowerCase().includes(searchLower) ||
-          d.specialization?.toLowerCase().includes(searchLower) ||
-          d.clinic?.toLowerCase().includes(searchLower)
-      );
-    }
+    const page = await baseQuery.paginate({
+      ...pagOpts,
+      numItems: batchSize,
+    });
 
-    // Remove passwords from response
-    return filtered.map(({ password: _, ...doctor }) => doctor);
+    const filtered = page.page.filter((doctor) =>
+      matchesFilters(doctor, { specialization, location, search })
+    );
+
+    const sanitized = filtered.map(({ password: _, ...doctor }) => doctor);
+
+    const hasMoreMatches = !page.isDone;
+
+    const slimPage = sanitized.map((doctor) => ({
+      _id: doctor._id,
+      name: doctor.name,
+      specialization: doctor.specialization ?? "",
+      experience: doctor.experience ?? "",
+      location: doctor.location ?? "",
+      clinic: doctor.clinic ?? "",
+      consultationFee: doctor.consultationFee ?? null,
+      rating: doctor.rating ?? null,
+      patientStories: doctor.patientStories ?? null,
+      profileImage: doctor.profileImage ?? "",
+      isAvailable: doctor.isAvailable !== false,
+    }));
+
+    return {
+      page: slimPage,
+      isDone: hasMoreMatches ? false : page.isDone,
+      continueCursor: page.isDone ? undefined : page.continueCursor,
+    };
   },
 });
 

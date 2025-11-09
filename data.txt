@@ -1,0 +1,2 @@
+cd healthcare-hospital && npm run dev
+cd healthcare-hospital && npm run convex:dev

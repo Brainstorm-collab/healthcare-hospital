@@ -8,7 +8,7 @@ export const hospitals = [
     specialties: ['Cardiology', 'Neurology', 'Orthopedics'],
     beds: 500,
     established: 1983,
-    image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/d/dc/Apollo_Hospital_Indraprastha.jpg',
   },
   {
     id: 2,
@@ -19,7 +19,7 @@ export const hospitals = [
     specialties: ['Oncology', 'Cardiology', 'Gastroenterology'],
     beds: 300,
     established: 2001,
-    image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/8/8a/Fortis_Hospital_Noida_-_panoramio.jpg',
   },
   {
     id: 3,
@@ -30,7 +30,7 @@ export const hospitals = [
     specialties: ['Pediatrics', 'Gynecology', 'Dermatology'],
     beds: 400,
     established: 2005,
-    image: 'https://images.unsplash.com/photo-1551601651-2a8555f1a136?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/c/cd/AIIMS_-New_Delhi%27s_Ward_Block.jpg',
   },
   {
     id: 4,
@@ -41,7 +41,7 @@ export const hospitals = [
     specialties: ['General Medicine', 'Surgery', 'Emergency'],
     beds: 1500,
     established: 1956,
-    image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://kdahweb-static-1.kokilabenhospital.com/kdah-2019/slider/17565331786539.webp?w=1920&q=75',
   },
   {
     id: 5,
@@ -52,7 +52,7 @@ export const hospitals = [
     specialties: ['Oncology', 'Neurology', 'Transplants'],
     beds: 350,
     established: 1950,
-    image: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://upload.wikimedia.org/wikipedia/commons/1/11/Nanavati_Super_Speciality_Hospital%2C_Mumbai%2C_Maharashtra%2C_India.jpg',
   },
   {
     id: 6,
@@ -63,7 +63,7 @@ export const hospitals = [
     specialties: ['Cardiology', 'Orthopedics', 'Neurosciences'],
     beds: 750,
     established: 2009,
-    image: 'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://medanta.s3.ap-south-1.amazonaws.com/banners/March2025/paXDPZoSH2KFnRWBYAKB6sAs4504sq-metaV2lFd3VpVHFZeVZ5YkswOFlJbWhMZmxVQ2E1b2hXLW1ldGFkRzl3WDJKaGJtNWxjaTVxY0djPS0ud2VicA==-.webp',
   },
   {
     id: 7,
@@ -74,7 +74,7 @@ export const hospitals = [
     specialties: ['Cardiac Surgery', 'Gastroenterology', 'Urology'],
     beds: 1200,
     established: 2009,
-    image: 'https://images.unsplash.com/photo-1587370560942-ad2a04eabb6d?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://images.unsplash.com/photo-1524253482453-3fed8d2fe12b?w=800&h=480&fit=crop&auto=format&q=80',
   },
   {
     id: 8,
@@ -85,7 +85,7 @@ export const hospitals = [
     specialties: ['Internal Medicine', 'ENT', 'Pediatrics'],
     beds: 675,
     established: 1954,
-    image: 'https://images.unsplash.com/photo-1581594693700-8c8d5a7014a1?w=800&h=480&fit=crop&auto=format&q=80',
+    image: 'https://images.unsplash.com/photo-1504813184591-01572f98c85f?w=800&h=480&fit=crop&auto=format&q=80',
   },
 ]
 

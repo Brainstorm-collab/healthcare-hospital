@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useQuery, useMutation } from 'convex/react'
+import { memo, useEffect, useMemo, useState, useTransition } from 'react'
+import { useMutation, usePaginatedQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
@@ -10,6 +10,17 @@ import FooterSection from '@/components/sections/FooterSection'
 import { Filter, MapPin, SlidersHorizontal, Star, CheckCircle2, XCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+
+const useDebounce = (value, delay = 250) => {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+
+  return debouncedValue
+}
 
 // Generate time slots for the next 7 days
 const generateTimeSlots = () => {
@@ -43,7 +54,7 @@ const generateTimeSlots = () => {
 
 const daySlots = generateTimeSlots()
 
-const DoctorCard = ({ doctor, expanded, onToggle, onBookAppointment, currentUser }) => {
+const DoctorCard = memo(({ doctor, expanded, onToggle, onBookAppointment, currentUser }) => {
   const [selectedDay, setSelectedDay] = useState(0)
   const [selectedTime, setSelectedTime] = useState(null)
   const slots = useMemo(() => daySlots[selectedDay], [selectedDay])
@@ -226,7 +237,7 @@ const DoctorCard = ({ doctor, expanded, onToggle, onBookAppointment, currentUser
       )}
     </div>
   )
-}
+})
 
 const FindDoctorsPage = () => {
   const { user: currentUser } = useAuth()
@@ -237,12 +248,27 @@ const FindDoctorsPage = () => {
   const [locationQuery, setLocationQuery] = useState('')
   const [specializationQuery, setSpecializationQuery] = useState('')
   const [filterAvailable, setFilterAvailable] = useState(false)
+  const [isPendingFilters, startTransition] = useTransition()
 
-  // Fetch all doctors with real-time updates
-  const doctors = useQuery(api.doctors.listDoctors, {
-    specialization: specializationQuery || undefined,
-    location: locationQuery || undefined,
-    search: searchQuery || undefined,
+  const debouncedSpecialization = useDebounce(specializationQuery, 250)
+  const debouncedLocation = useDebounce(locationQuery, 250)
+  const debouncedSearch = useDebounce(searchQuery, 250)
+
+  const doctorQueryArgs = useMemo(
+    () => ({
+      specialization: debouncedSpecialization || undefined,
+      location: debouncedLocation || undefined,
+      search: debouncedSearch || undefined,
+    }),
+    [debouncedSpecialization, debouncedLocation, debouncedSearch]
+  )
+
+  const {
+    results: doctorResults,
+    status: doctorsStatus,
+    loadMore: loadMoreDoctors,
+  } = usePaginatedQuery(api.doctors.listDoctors, doctorQueryArgs, {
+    initialNumItems: 8,
   })
 
   // Create appointment mutation
@@ -286,16 +312,30 @@ const FindDoctorsPage = () => {
 
   // Filter doctors based on availability
   const filteredDoctors = useMemo(() => {
-    if (!doctors) return []
-    
-    let filtered = doctors
-    
+    const source = doctorResults ?? []
+
+    let filtered = source
+
     if (filterAvailable) {
-      filtered = filtered.filter(doc => doc.isAvailable !== false)
+      filtered = filtered.filter((doc) => doc.isAvailable !== false)
     }
-    
+
     return filtered
-  }, [doctors, filterAvailable])
+  }, [doctorResults, filterAvailable])
+
+  const isInitialLoading = doctorsStatus === 'LoadingFirstPage'
+  const isLoadingMore = doctorsStatus === 'LoadingMore'
+  const canLoadMore = doctorsStatus === 'CanLoadMore'
+
+  useEffect(() => {
+    if (!isInitialLoading && !isLoadingMore && canLoadMore && filteredDoctors.length === 0) {
+      loadMoreDoctors(12)
+    }
+  }, [filteredDoctors.length, canLoadMore, isInitialLoading, isLoadingMore, loadMoreDoctors])
+
+  useEffect(() => {
+    setExpandedDoctor(null)
+  }, [debouncedSearch, debouncedLocation, debouncedSpecialization])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#E8F1FF] via-white to-white">
@@ -310,7 +350,11 @@ const FindDoctorsPage = () => {
                 type="text"
                 placeholder="Set your location"
                 value={locationQuery}
-                onChange={(e) => setLocationQuery(e.target.value)}
+                onChange={(e) =>
+                  startTransition(() => {
+                    setLocationQuery(e.target.value)
+                  })
+                }
                 className="h-full w-full border-0 bg-transparent text-sm font-medium text-[#102851] placeholder:text-[#8FA3C0] focus:outline-none"
               />
             </div>
@@ -319,7 +363,11 @@ const FindDoctorsPage = () => {
                 type="text"
                 placeholder="Ex. Doctor, Hospital"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) =>
+                  startTransition(() => {
+                    setSearchQuery(e.target.value)
+                  })
+                }
                 className="h-full w-full border-0 bg-transparent text-sm font-medium text-[#102851] placeholder:text-[#8FA3C0] focus:outline-none"
               />
             </div>
@@ -328,15 +376,20 @@ const FindDoctorsPage = () => {
                 type="text"
                 placeholder="Ex. Treatments, Speciality"
                 value={specializationQuery}
-                onChange={(e) => setSpecializationQuery(e.target.value)}
+                onChange={(e) =>
+                  startTransition(() => {
+                    setSpecializationQuery(e.target.value)
+                  })
+                }
                 className="h-full w-full border-0 bg-transparent text-sm font-medium text-[#102851] placeholder:text-[#8FA3C0] focus:outline-none"
               />
             </div>
             <button
               onClick={handleSearch}
-              className="inline-flex h-[56px] items-center justify-center rounded-lg bg-[#2AA8FF] px-8 text-base font-semibold text-white shadow-[0_8px_20px_rgba(42,168,255,0.3)] transition hover:bg-[#1896f0]"
+              className="inline-flex h-[56px] items-center justify-center rounded-lg bg-[#2AA8FF] px-8 text-base font-semibold text-white shadow-[0_8px_20px_rgba(42,168,255,0.3)] transition hover:bg-[#1896f0] disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={isPendingFilters}
             >
-              Search
+              {isPendingFilters ? 'Updating…' : 'Search'}
             </button>
           </div>
 
@@ -371,21 +424,36 @@ const FindDoctorsPage = () => {
           <div className="flex-1 space-y-6">
             <div className="space-y-2">
               <h2 className="text-lg font-semibold text-[#102851]">
-                {doctors === undefined 
-                  ? 'Loading doctors...' 
+                {isInitialLoading
+                  ? 'Loading doctors...'
                   : filteredDoctors.length === 0
                   ? 'No doctors found'
-                  : `${filteredDoctors.length} doctor${filteredDoctors.length !== 1 ? 's' : ''} available`
-                }
+                  : `${filteredDoctors.length} doctor${filteredDoctors.length !== 1 ? 's' : ''} available`}
               </h2>
               <p className="text-sm text-[#5C6169]">
                 Book appointments with minimum wait-time &amp; verified doctor details
               </p>
             </div>
 
-            {doctors === undefined ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
+            {isInitialLoading ? (
+              <div className="grid gap-6 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="animate-pulse rounded-[18px] border border-[#E4EBF5] bg-white p-6 shadow-[0_10px_25px_rgba(18,42,76,0.08)]"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 rounded-full bg-[#E7F0FF]" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 w-32 rounded bg-[#E7F0FF]" />
+                        <div className="h-3 w-24 rounded bg-[#F0F4FF]" />
+                        <div className="h-3 w-20 rounded bg-[#F0F4FF]" />
+                      </div>
+                    </div>
+                    <div className="mt-6 h-3 w-full rounded bg-[#F0F4FF]" />
+                    <div className="mt-2 h-3 w-2/3 rounded bg-[#F0F4FF]" />
+                  </div>
+                ))}
               </div>
             ) : filteredDoctors.length === 0 ? (
               <div className="py-12 text-center">
@@ -406,7 +474,7 @@ const FindDoctorsPage = () => {
                 </Button>
               </div>
             ) : (
-              <>
+              <div className="space-y-6">
                 {filteredDoctors.map((doctor) => (
                   <DoctorCard
                     key={doctor._id}
@@ -417,23 +485,18 @@ const FindDoctorsPage = () => {
                     currentUser={currentUser}
                   />
                 ))}
-
-                <div className="flex items-center justify-center gap-2 pt-4">
-                  {[1, 2, 3, 10].map((page, index) => (
-                    <button
-                      key={page}
-                      className={`h-10 w-10 rounded-lg border border-[#DCE6F5] text-sm font-medium transition ${
-                        index === 0 ? 'bg-[#2AA8FF] text-white' : 'text-[#102851] hover:border-[#2AA8FF]'
-                      }`}
+                {(canLoadMore || isLoadingMore) && (
+                  <div className="flex justify-center pt-4">
+                    <Button
+                      onClick={() => loadMoreDoctors(8)}
+                      disabled={isLoadingMore || !canLoadMore}
+                      className="bg-[#2AA8FF] text-white hover:bg-[#1896f0]"
                     >
-                      {index === 3 ? '…' : page}
-                    </button>
-                  ))}
-                  <button className="h-10 rounded-lg border border-[#DCE6F5] px-3 text-sm font-medium text-[#2AA8FF]">
-                    ›
-                  </button>
-                </div>
-              </>
+                      {isLoadingMore ? 'Loading…' : canLoadMore ? 'Load more doctors' : 'No more results'}
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 

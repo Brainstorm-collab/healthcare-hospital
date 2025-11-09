@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery, useMutation } from 'convex/react'
+import { useQuery, useMutation, usePaginatedQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
@@ -27,11 +27,14 @@ const NotificationsPage = () => {
   const toast = useToast()
   const [filter, setFilter] = useState('all')
 
-  // Fetch notifications with real-time updates
-  const notifications = useQuery(
-    api.notifications.getNotificationsByUser,
-    user?._id ? { userId: user._id } : 'skip'
-  )
+  const notificationsArgs = user?._id ? { userId: user._id } : 'skip'
+  const {
+    results: notificationResults,
+    status: notificationsStatus,
+    loadMore: loadMoreNotifications,
+  } = usePaginatedQuery(api.notifications.getNotificationsByUser, notificationsArgs, {
+    initialNumItems: 12,
+  })
 
   // Get unread count
   const unreadCount = useQuery(
@@ -45,9 +48,15 @@ const NotificationsPage = () => {
   const deleteNotification = useMutation(api.notifications.deleteNotification)
 
   // Filter notifications
-  const filteredNotifications = Array.isArray(notifications) 
-    ? notifications.filter(notif => filter === 'all' || !notif.read)
-    : []
+  const notifications = notificationResults ?? []
+
+  const filteredNotifications = notifications.filter((notif) =>
+    filter === 'all' ? true : !notif.read
+  )
+
+  const isInitialLoading = notificationsStatus === 'LoadingFirstPage'
+  const isLoadingMore = notificationsStatus === 'LoadingMore'
+  const canLoadMore = notificationsStatus === 'CanLoadMore'
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -205,9 +214,23 @@ const NotificationsPage = () => {
         </div>
 
         {/* Notifications List */}
-        {notifications === undefined ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
+        {isInitialLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <Card
+                key={idx}
+                className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)] p-4 animate-pulse"
+              >
+                <CardContent className="flex items-start gap-4 p-0">
+                  <div className="h-10 w-10 rounded-full bg-[#E7F0FF]" />
+                  <div className="flex-1 space-y-3">
+                    <div className="h-4 w-40 rounded bg-[#E7F0FF]" />
+                    <div className="h-3 w-full rounded bg-[#F0F4FF]" />
+                    <div className="h-3 w-24 rounded bg-[#F0F4FF]" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : filteredNotifications.length === 0 ? (
           <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
@@ -282,6 +305,18 @@ const NotificationsPage = () => {
                 </CardContent>
               </Card>
             ))}
+            {(canLoadMore || isLoadingMore) && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => loadMoreNotifications(8)}
+                  disabled={isLoadingMore}
+                  className="border-[#DCE6F5] text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]"
+                >
+                  {isLoadingMore ? 'Loading…' : 'Load more notifications'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </main>
