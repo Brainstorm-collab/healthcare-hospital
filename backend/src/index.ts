@@ -1,3 +1,7 @@
+// Bootstrap the HTTP server process.
+// - Loads environment with dotenv
+// - Creates the Express app
+// - Starts listening on the configured port
 import "dotenv/config";
 import { env } from "./config/env";
 import { createApp } from "./app";

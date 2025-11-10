@@ -1,3 +1,6 @@
+// Prisma client singleton.
+// - Reuses a single client in development to avoid connection storms on hot-reload.
+// - Emits verbose logs only in development.
 import { PrismaClient } from "../generated/prisma/client";
 
 declare global {

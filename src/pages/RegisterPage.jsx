@@ -8,6 +8,12 @@ import { Input } from '@/components/ui/input'
 import { ShieldCheck, Mail, Lock, User, Phone, MapPin, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import GoogleLoginButton from '@/components/GoogleLoginButton'
 
+/**
+ * RegisterPage
+ * ------------
+ * Full registration flow with role selection (patient/doctor), validation,
+ * conditional doctor fields, and social login options.
+ */
 const RegisterPage = () => {
   const navigate = useNavigate()
   const toast = useToast()
@@ -61,6 +67,7 @@ const RegisterPage = () => {
     return null
   }
 
+  // Keep form state in sync and clear inline errors when the user edits a field.
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
@@ -71,6 +78,7 @@ const RegisterPage = () => {
     }
   }
 
+  // Shared validation covering both roles.
   const validate = () => {
     const next = {}
     let isValid = true
@@ -112,6 +120,7 @@ const RegisterPage = () => {
     return isValid
   }
 
+  // Submit to the auth context and route by role on success.
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrors({})

@@ -8,12 +8,19 @@ import { FileText, Calendar, Download, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '@/lib/api'
 
+/**
+ * MedicalRecordsPage
+ * ------------------
+ * Patient-facing log of medical records fetched from the API.
+ * Supports loading/empty states and lists prescriptions, notes, and downloadable reports.
+ */
 const MedicalRecordsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [medicalRecords, setMedicalRecords] = useState([])
   const [recordsLoading, setRecordsLoading] = useState(false)
 
+  // Fetch records on mount (and when the signed-in patient changes).
   useEffect(() => {
     let cancelled = false
 
@@ -64,6 +71,7 @@ const MedicalRecordsPage = () => {
           <p className="text-[#5C6169] mt-2">View all your medical records and prescriptions</p>
         </div>
 
+        {/* --- Loading, empty state, or record list --- */}
         {recordsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>

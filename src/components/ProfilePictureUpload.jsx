@@ -1,3 +1,7 @@
+// ProfilePictureUpload
+// --------------------
+// Validates image type/size, previews locally, uploads as base64 to the API,
+// and mirrors the change into the AuthContext profile.
 import { useState, useRef } from 'react'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'

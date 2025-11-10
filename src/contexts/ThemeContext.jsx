@@ -1,3 +1,6 @@
+// ThemeContext
+// ------------
+// Provides a read-only design token object (colors, fonts, spacing) to components.
 import { createContext, useContext, useState } from 'react'
 
 const ThemeContext = createContext()

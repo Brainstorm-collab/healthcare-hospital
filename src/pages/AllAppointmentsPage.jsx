@@ -9,16 +9,27 @@ import { useNavigate } from 'react-router-dom'
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
 import { apiClient } from '@/lib/api'
 
+/**
+ * AllAppointmentsPage
+ * -------------------
+ * Aggregates every appointment tied to the authenticated user (doctor or patient).
+ * We fetch the data on mount, memoize filters/search, and render a responsive list with detail modals.
+ */
 const AllAppointmentsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
+  // Modal state for the details drawer
   const [selectedAppointment, setSelectedAppointment] = useState(null)
+  // Status toggle buttons
   const [statusFilter, setStatusFilter] = useState('all')
+  // Text input for doctor/patient search
   const [searchQuery, setSearchQuery] = useState('')
 
+  // Raw appointment data from the API
   const [appointments, setAppointments] = useState([])
   const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
+  // Fetch appointments every time the user context changes (role or id).
   useEffect(() => {
     let cancelled = false
 
@@ -55,6 +66,7 @@ const AllAppointmentsPage = () => {
     }
   }, [user?._id, user.role])
 
+  // Apply filters in-memory to avoid unnecessary network calls every keystroke.
   const filteredAppointments = useMemo(() => appointments.filter(apt => {
     const matchesStatus = statusFilter === 'all' || apt.status === statusFilter
     const matchesSearch = searchQuery === '' || 
@@ -66,6 +78,7 @@ const AllAppointmentsPage = () => {
     return matchesStatus && matchesSearch
   }), [appointments, searchQuery, statusFilter, user.role]) || []
 
+  // Map status to Tailwind utility strings for badge styling.
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed':
@@ -98,7 +111,7 @@ const AllAppointmentsPage = () => {
           <p className="text-[#5C6169] mt-2">View and manage all your appointments</p>
         </div>
 
-        {/* Filters */}
+        {/* --- Filter controls: status chips + search box --- */}
         <Card className="mb-6 border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
           <CardContent className="p-4">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -133,6 +146,7 @@ const AllAppointmentsPage = () => {
           </CardContent>
         </Card>
 
+        {/* --- Loading / empty states / appointment list --- */}
         {appointmentsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
@@ -208,6 +222,7 @@ const AllAppointmentsPage = () => {
           </div>
         )}
 
+        {/* --- Appointment detail modal (lazy mounted) --- */}
         {selectedAppointment && (
           <AppointmentDetailsModal
             appointmentId={selectedAppointment}

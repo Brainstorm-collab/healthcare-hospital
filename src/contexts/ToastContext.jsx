@@ -1,3 +1,6 @@
+// ToastContext
+// ------------
+// Thin wrapper around 'sonner' to keep usage consistent across the app.
 import { createContext, useContext } from 'react'
 import { toast } from 'sonner'
 

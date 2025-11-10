@@ -1,3 +1,6 @@
+// TopNavigation
+// -------------
+// Global header with navigation links, user avatar menu, and mobile drawer.
 import { Link, useLocation } from 'react-router-dom'
 import { navLinks } from '@/data/homepage'
 import { useAuth } from '@/contexts/AuthContext'

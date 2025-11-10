@@ -1,3 +1,4 @@
+// User endpoints: listing, fetching, updating profile and availability.
 import { Router } from "express";
 import {
   getUserByIdHandler,
@@ -10,12 +11,12 @@ import {
 
 const usersRouter = Router();
 
-usersRouter.get("/", listUsersHandler);
-usersRouter.get("/doctors", listDoctorsHandler);
-usersRouter.get("/:id", getUserByIdHandler);
-usersRouter.patch("/:id", updateUserProfileHandler);
-usersRouter.patch("/:id/availability", updateAvailabilityHandler);
-usersRouter.post("/availability", updateAvailabilityHandler);
-usersRouter.delete("/:id", deleteUserHandler);
+usersRouter.get("/", listUsersHandler);                     // GET /api/users
+usersRouter.get("/doctors", listDoctorsHandler);            // GET /api/users/doctors
+usersRouter.get("/:id", getUserByIdHandler);                // GET /api/users/:id
+usersRouter.patch("/:id", updateUserProfileHandler);        // PATCH /api/users/:id
+usersRouter.patch("/:id/availability", updateAvailabilityHandler); // PATCH /api/users/:id/availability
+usersRouter.post("/availability", updateAvailabilityHandler);      // POST /api/users/availability
+usersRouter.delete("/:id", deleteUserHandler);              // DELETE /api/users/:id
 
 export default usersRouter;

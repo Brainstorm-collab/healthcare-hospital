@@ -8,6 +8,12 @@ import FaqSection from '@/components/sections/FaqSection'
 import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
 
+/**
+ * HomePage
+ * --------
+ * Landing page composition: stitches together statically designed sections exported from `components/sections`.
+ * Each section is responsible for its own layout/content; this file simply orders them.
+ */
 const HomePage = () => {
   return (
     <div className="flex min-h-screen flex-col bg-white">

@@ -1,3 +1,5 @@
+// Authentication controller: email/password and Google social login.
+// Normalizes inputs, validates, hashes passwords, and returns normalized user JSON.
 import { randomUUID } from "node:crypto";
 import type { Request, Response } from "express";
 import bcrypt from "bcryptjs";
@@ -7,10 +9,12 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { toPrismaRole } from "../utils/enums";
 import { userToJSON } from "../utils/transformers";
 
+// Keep email comparisons case-insensitive
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 const SALT_ROUNDS = 10;
 
+// POST /api/auth/register
 export const registerHandler = asyncHandler(async (req: Request, res: Response) => {
   const {
     name,
@@ -84,6 +88,7 @@ export const registerHandler = asyncHandler(async (req: Request, res: Response) 
   return res.status(201).json({ success: true, user: userToJSON(user) });
 });
 
+// POST /api/auth/login
 export const loginHandler = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body ?? {};
 
@@ -113,6 +118,8 @@ export const loginHandler = asyncHandler(async (req: Request, res: Response) => 
   return res.json(userToJSON(user));
 });
 
+// POST /api/auth/social-login
+// Accepts Google profile payload; upserts user and returns normalized JSON.
 export const socialLoginHandler = asyncHandler(async (req: Request, res: Response) => {
   const {
     provider,

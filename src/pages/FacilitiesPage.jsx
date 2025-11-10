@@ -6,6 +6,11 @@ import FaqSection from '@/components/sections/FaqSection'
 import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
 
+/**
+ * FacilitiesPage
+ * --------------
+ * Lists the hospital's core facilities (from static data) and shows supporting sections like FAQs/app download.
+ */
 const FacilitiesPage = () => {
   const theme = useTheme()
 
@@ -21,6 +26,7 @@ const FacilitiesPage = () => {
           </p>
         </div>
 
+        {/* --- Facility cards pulled from the static dataset --- */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {facilities.map((facility) => (
             <div
@@ -47,6 +53,7 @@ const FacilitiesPage = () => {
           ))}
         </div>
 
+        {/* --- Additional descriptive copy / SEO-friendly content --- */}
         <div className="mt-12 rounded-[18px] border border-[#E4EBF5] bg-white p-8 shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
           <h2 className="mb-4 text-2xl font-bold text-[#102851]">Additional Information</h2>
           <div className="space-y-4 text-[#5C6169]">

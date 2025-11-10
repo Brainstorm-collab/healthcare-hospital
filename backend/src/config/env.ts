@@ -1,3 +1,5 @@
+// Environment configuration with runtime validation.
+// Uses Zod to ensure required vars exist and have correct types.
 import { z } from "zod";
 
 const envSchema = z.object({

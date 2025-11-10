@@ -8,15 +8,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import FooterSection from '@/components/sections/FooterSection'
 import { useToast } from '@/contexts/ToastContext'
 
+/**
+ * CartPage
+ * --------
+ * Presents the user's medicine cart, quantity controls, subtotal calculation, and a mock checkout flow.
+ * The payment dialog is simulated to showcase transitions and order confirmation messaging.
+ */
 const CartPage = () => {
   const { items, setQuantity, removeItem, subtotal, clear, isAuthenticated } = useCart()
   const navigate = useNavigate()
+  // Dialog visibility for the simulated payment flow
   const [showPayment, setShowPayment] = useState(false)
+  // Mock payment async state (simulates API latency)
   const [isProcessing, setIsProcessing] = useState(false)
+  // Whether the fake payment succeeded
   const [paymentSuccess, setPaymentSuccess] = useState(false)
+  // Generated order confirmation ID
   const [orderReference, setOrderReference] = useState('')
   const toast = useToast()
 
+  // Guard rails before we open the payment modal.
   const startPayment = () => {
     if (!isAuthenticated) {
       navigate('/login')
@@ -28,6 +39,7 @@ const CartPage = () => {
     setShowPayment(true)
   }
 
+  // Fake checkout "processing": delay, then clear the cart and show confirmation.
   const confirmPayment = async () => {
     setIsProcessing(true)
     await new Promise((r) => setTimeout(r, 1200))
@@ -39,6 +51,7 @@ const CartPage = () => {
     toast.success('Payment successful', `Your order ${reference} has been placed.`)
   }
 
+  // Reset dialog state whenever it closes (including ESC / overlay click).
   const handleCloseDialog = (open) => {
     setShowPayment(open)
     if (!open) {
@@ -54,6 +67,7 @@ const CartPage = () => {
       <main className="mx-auto mt-36 max-w-[1170px] px-6 pb-24 pt-8">
         <h1 className="mb-6 text-3xl font-bold text-[#102851]">Your Cart</h1>
 
+        {/* --- Empty cart fallback --- */}
         {items.length === 0 ? (
           <div className="rounded-lg border border-[#E4EBF5] bg-white p-8 text-center">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#2AA8FF]/10 text-[#2AA8FF]">
@@ -65,6 +79,7 @@ const CartPage = () => {
             </Button>
           </div>
         ) : (
+          /* --- Cart items + summary --- */
           <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
             <div className="space-y-4">
               {items.map((item) => (
@@ -122,6 +137,7 @@ const CartPage = () => {
 
       <FooterSection />
 
+      {/* --- Mock payment dialog --- */}
       <Dialog open={showPayment} onOpenChange={handleCloseDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input'
 import { ShieldCheck, Mail, Lock, AlertCircle } from 'lucide-react'
 import GoogleLoginButton from '@/components/GoogleLoginButton'
 
+/**
+ * LoginPage
+ * ---------
+ * Handles credential entry, client-side validation, role-based redirect, and offers Google login fallback.
+ */
 const LoginPage = () => {
   const navigate = useNavigate()
   const toast = useToast()
@@ -48,6 +53,7 @@ const LoginPage = () => {
     return null
   }
 
+  // Minimal synchronous validation before hitting the API.
   const validate = () => {
     const next = { email: '', password: '', general: '' }
     let isValid = true
@@ -72,6 +78,7 @@ const LoginPage = () => {
     return isValid
   }
 
+  // POST credentials using the auth context and route the user by role.
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErrors({ email: '', password: '', general: '' })
@@ -139,6 +146,7 @@ const LoginPage = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email field */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#102851]" htmlFor="email">
                 Email
@@ -165,6 +173,7 @@ const LoginPage = () => {
               )}
             </div>
 
+            {/* Password field */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[#102851]" htmlFor="password">
                 Password
@@ -191,6 +200,7 @@ const LoginPage = () => {
               )}
             </div>
 
+            {/* Remember me + forgot password */}
             <div className="flex items-center justify-between">
               <label className="inline-flex items-center gap-1.5 text-xs text-[#5C6169] cursor-pointer">
                 <input
@@ -209,6 +219,7 @@ const LoginPage = () => {
               </Link>
             </div>
 
+            {/* Primary action */}
             <Button
               type="submit"
               disabled={isSubmitting}
@@ -228,6 +239,7 @@ const LoginPage = () => {
               </div>
             </div>
 
+            {/* Social logins (Google live, Apple placeholder) */}
             <div className="space-y-2">
               <GoogleLoginButton disabled={isSubmitting} />
               <Button

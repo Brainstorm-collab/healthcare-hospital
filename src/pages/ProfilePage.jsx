@@ -20,6 +20,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
+/**
+ * ProfilePage
+ * -----------
+ * Centralised account management: uploads avatar, edits general info,
+ * conditionally shows doctor-only fields, and exposes a delete-account flow.
+ */
 const ProfilePage = () => {
   const { user, updateProfile, deleteAccount, isLoading: authLoading } = useAuth()
   const toast = useToast()
@@ -69,6 +75,7 @@ const ProfilePage = () => {
     }
   }
 
+  // Client-side validation for shared + doctor-only fields.
   const validate = () => {
     const newErrors = {}
     let isValid = true
@@ -105,6 +112,7 @@ const ProfilePage = () => {
     return isValid
   }
 
+  // Persist profile edits to the API and mirror to context.
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!validate()) return
@@ -432,6 +440,7 @@ const ProfilePage = () => {
           </Card>
         </div>
 
+        {/* Danger Zone */}
         <Card className="mt-10 border border-red-200 bg-white shadow-soft">
           <CardHeader>
             <CardTitle className="text-lg font-semibold text-red-600">Danger Zone</CardTitle>

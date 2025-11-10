@@ -9,6 +9,12 @@ import { User, Mail, Phone, Calendar, Search, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { apiClient } from '@/lib/api'
 
+/**
+ * PatientListPage
+ * ---------------
+ * Doctor-focused roster of patients derived from their appointment history.
+ * Supports search and avoids duplicate patients via memoized aggregation.
+ */
 const PatientListPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -17,6 +23,7 @@ const PatientListPage = () => {
   const [appointments, setAppointments] = useState([])
   const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
+  // Load doctor's appointments so we can compute the patient list.
   useEffect(() => {
     let cancelled = false
 
@@ -93,7 +100,7 @@ const PatientListPage = () => {
           <p className="text-[#5C6169] mt-2">View all your patients</p>
         </div>
 
-        {/* Search */}
+        {/* --- Search --- */}
         <Card className="mb-6 border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
           <CardContent className="p-4">
             <div className="relative">
@@ -109,6 +116,7 @@ const PatientListPage = () => {
           </CardContent>
         </Card>
 
+        {/* --- Loading, empty state, or patient grid --- */}
         {appointmentsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>

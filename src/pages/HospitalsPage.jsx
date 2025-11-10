@@ -8,6 +8,11 @@ import FooterSection from '@/components/sections/FooterSection'
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
+/**
+ * HospitalsPage
+ * -------------
+ * Displays a catalog of partner hospitals pulled from static data with a detail modal per selection.
+ */
 const HospitalsPage = () => {
   const theme = useTheme()
   const [selectedHospital, setSelectedHospital] = useState(null)
@@ -24,6 +29,7 @@ const HospitalsPage = () => {
           </p>
         </div>
 
+        {/* --- Hospital cards with fallback imagery and quick stats --- */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
           {hospitals.map((hospital, index) => (
             <div
@@ -103,7 +109,7 @@ const HospitalsPage = () => {
         </div>
       </main>
 
-      {/* Details Modal */}
+      {/* --- Expanded hospital details (modal) --- */}
       <Dialog open={!!selectedHospital} onOpenChange={(open) => !open && setSelectedHospital(null)}>
         <DialogContent className="sm:max-w-2xl">
           {selectedHospital && (

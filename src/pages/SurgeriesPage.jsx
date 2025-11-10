@@ -7,6 +7,11 @@ import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
 import { useNavigate } from 'react-router-dom'
 
+/**
+ * SurgeriesPage
+ * -------------
+ * Promotional list of surgical procedures with fallback imagery and quick CTA to book consultations.
+ */
 const SurgeriesPage = () => {
   const theme = useTheme()
   const navigate = useNavigate()
@@ -32,6 +37,7 @@ const SurgeriesPage = () => {
           </p>
         </div>
 
+        {/* --- Surgery cards --- */}
         <div className="grid gap-6 md:grid-cols-2">
           {surgeries.map((surgery, index) => (
             <div

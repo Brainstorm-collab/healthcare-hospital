@@ -11,6 +11,12 @@ import { useState, useEffect } from 'react'
 import LoginPromptDialog from '@/components/auth/LoginPromptDialog'
 import { useToast } from '@/contexts/ToastContext'
 
+/**
+ * MedicinesPage
+ * -------------
+ * Displays catalogued medicines (static data) with pricing, discounting, stock status,
+ * and hooks into the cart. Non-authenticated users see a login prompt dialog.
+ */
 const MedicinesPage = () => {
   const theme = useTheme()
   const { addItem } = useCart()
@@ -18,6 +24,7 @@ const MedicinesPage = () => {
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const toast = useToast()
 
+  // Dismiss the login prompt automatically once the user signs in.
   useEffect(() => {
     if (isAuthenticated && showLoginPrompt) {
       setShowLoginPrompt(false)
@@ -36,6 +43,7 @@ const MedicinesPage = () => {
           </p>
         </div>
 
+        {/* --- Medicine cards grid --- */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {medicines.map((medicine) => {
             const discountedPrice = medicine.price - (medicine.price * medicine.discount) / 100

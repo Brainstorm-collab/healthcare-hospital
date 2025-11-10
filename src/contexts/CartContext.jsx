@@ -1,3 +1,7 @@
+// CartContext
+// -----------
+// Lightweight cart state persisted to localStorage.
+// Exposes helpers for add/remove/update along with computed totals.
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 

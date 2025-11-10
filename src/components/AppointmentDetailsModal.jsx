@@ -1,3 +1,6 @@
+// AppointmentDetailsModal
+// -----------------------
+// Fetches and displays a single appointment, allowing doctors to update status.
 import { useEffect, useState } from 'react'
 import {
   Dialog,

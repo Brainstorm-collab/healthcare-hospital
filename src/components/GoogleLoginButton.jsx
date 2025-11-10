@@ -1,3 +1,7 @@
+// GoogleLoginButton
+// -----------------
+// Wraps Google Identity Services to obtain an ID token and complete social login.
+// Handles preview-width constraints and role selection for first-time users.
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
 import { useAuth } from '@/contexts/AuthContext'

@@ -27,18 +27,29 @@ import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
 import { useToast } from '@/contexts/ToastContext'
 import { apiClient } from '@/lib/api'
 
+/**
+ * DoctorDashboard
+ * ---------------
+ * High-level view for doctors: fetches their appointments, shows metrics,
+ * allows toggling availability, and provides quick navigation cards.
+ */
 const DoctorDashboard = () => {
   const { user, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  // Availability toggle (mirrors backend state)
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable ?? true)
+  // Current appointment id for the detail modal
   const [selectedAppointment, setSelectedAppointment] = useState(null)
+  // Future enhancements: filter/search toggles drive UI controls
   const [showFilter, setShowFilter] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
 
+  // API response cache for the appointment list
   const [appointments, setAppointments] = useState([])
   const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
+  // Load doctor's appointments when the authenticated user changes.
   useEffect(() => {
     let cancelled = false
 
@@ -76,7 +87,7 @@ const DoctorDashboard = () => {
     }
   }, [toast, user?._id])
 
-  // Calculate statistics
+  // ---- Derived statistics ----
   const today = new Date().toISOString().split('T')[0]
   
   // Filter today's appointments
@@ -94,6 +105,7 @@ const DoctorDashboard = () => {
     completedAppointments: appointments?.filter(apt => apt.status === 'completed').length || 0,
   }
 
+  // Persist the availability switch to the backend and local context.
   const handleToggleAvailability = async () => {
     try {
       const nextAvailability = !isAvailable
@@ -116,6 +128,7 @@ const DoctorDashboard = () => {
     logout()
   }
 
+  // Shared badge styling helper for appointment status chips.
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed':
@@ -136,7 +149,7 @@ const DoctorDashboard = () => {
       <TopNavigation />
       
       <div className="mx-auto max-w-7xl px-4 py-6 pt-32">
-        {/* Header */}
+        {/* --- Header: identity and quick controls --- */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#102851]">
@@ -213,7 +226,7 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* --- KPI tiles summarising today's workload --- */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
             <CardContent className="p-6">
@@ -272,9 +285,9 @@ const DoctorDashboard = () => {
           </Card>
         </div>
 
-        {/* Main Content */}
+        {/* --- Main content grid (schedule + sidebar) --- */}
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Today's Appointments */}
+          {/* --- Today's appointments list --- */}
           <div className="lg:col-span-2">
             <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
               <CardHeader className="flex flex-row items-center justify-between">
@@ -365,7 +378,7 @@ const DoctorDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Upcoming Appointments */}
+            {/* --- Upcoming appointments preview --- */}
             <Card className="mt-6 border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
               <CardHeader>
                 <CardTitle className="text-xl font-bold text-[#102851]">Upcoming Appointments</CardTitle>
@@ -410,7 +423,7 @@ const DoctorDashboard = () => {
             </Card>
           </div>
 
-          {/* Quick Actions & Info */}
+          {/* --- Sidebar: profile summary + quick actions + availability --- */}
           <div className="space-y-6">
             {/* Profile Info */}
             <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
@@ -521,7 +534,7 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
-        {/* Appointment Details Modal */}
+        {/* --- Lazy loaded appointment detail modal --- */}
         {selectedAppointment && (
           <AppointmentDetailsModal
             appointmentId={selectedAppointment}

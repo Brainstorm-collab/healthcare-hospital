@@ -1,3 +1,5 @@
+// Enum mappers between human-readable strings and Prisma enum types.
+// Keeps transport shape stable while the DB uses UPPER_SNAKE_CASE enums.
 import type {
   AppointmentStatus,
   AppointmentType,

@@ -5,6 +5,12 @@ import FaqSection from '@/components/sections/FaqSection'
 import AppDownloadSection from '@/components/sections/AppDownloadSection'
 import FooterSection from '@/components/sections/FooterSection'
 
+/**
+ * SoftwareForProviderPage
+ * -----------------------
+ * Marketing-style page describing SaaS features/benefits for healthcare providers.
+ * Purely presentational; driven by static `features`/`benefits` arrays.
+ */
 const SoftwareForProviderPage = () => {
   const theme = useTheme()
 
@@ -57,6 +63,7 @@ const SoftwareForProviderPage = () => {
           </p>
         </div>
 
+        {/* --- Hero benefit section --- */}
         <div className="mb-12 overflow-hidden rounded-[18px] border border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
           <div className="grid gap-8 p-8 md:grid-cols-2">
             <div>
@@ -84,6 +91,7 @@ const SoftwareForProviderPage = () => {
           </div>
         </div>
 
+        {/* --- Feature grid --- */}
         <div className="mb-12">
           <h2 className="mb-8 text-center text-2xl font-bold text-[#102851]">Key Features</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -100,6 +108,7 @@ const SoftwareForProviderPage = () => {
           </div>
         </div>
 
+        {/* --- Call-to-action --- */}
         <div className="rounded-[18px] border border-[#E4EBF5] bg-white p-8 shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
           <div className="text-center">
             <h2 className="mb-4 text-2xl font-bold text-[#102851]">Ready to Get Started?</h2>

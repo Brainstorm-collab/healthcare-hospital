@@ -1,3 +1,4 @@
+// User controller: user CRUD, availability updates, and doctor list with pagination.
 import type { Request, Response } from "express";
 import { Prisma } from "../generated/prisma/client";
 import { prisma } from "../lib/prisma";
@@ -5,6 +6,7 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { toPrismaRole } from "../utils/enums";
 import { doctorListItem, userToJSON } from "../utils/transformers";
 
+// GET /api/users
 export const listUsersHandler = asyncHandler(async (req: Request, res: Response) => {
   const { role } = req.query as { role?: string };
 
@@ -20,6 +22,7 @@ export const listUsersHandler = asyncHandler(async (req: Request, res: Response)
   return res.json(users.map(userToJSON));
 });
 
+// GET /api/users/:id
 export const getUserByIdHandler = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -36,6 +39,7 @@ export const getUserByIdHandler = asyncHandler(async (req: Request, res: Respons
   return res.json(userToJSON(user));
 });
 
+// PATCH /api/users/:id
 export const updateUserProfileHandler = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.params.id ?? req.body?.userId;
 
@@ -89,6 +93,7 @@ export const updateUserProfileHandler = asyncHandler(async (req: Request, res: R
   return res.json({ success: true, user: userToJSON(user) });
 });
 
+// PATCH /api/users/:id/availability (or POST /api/users/availability)
 export const updateAvailabilityHandler = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.params.id ?? req.body?.doctorId;
   const { isAvailable, availableSlots } = req.body ?? {};
@@ -113,6 +118,7 @@ export const updateAvailabilityHandler = asyncHandler(async (req: Request, res: 
   return res.json({ success: true, user: userToJSON(user) });
 });
 
+// DELETE /api/users/:id
 export const deleteUserHandler = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
 
@@ -144,6 +150,8 @@ export const deleteUserHandler = asyncHandler(async (req: Request, res: Response
   return res.json({ success: true });
 });
 
+// GET /api/users/doctors
+// Supports query filters: specialization, location, search, page, limit
 export const listDoctorsHandler = asyncHandler(async (req: Request, res: Response) => {
   const {
     specialization,

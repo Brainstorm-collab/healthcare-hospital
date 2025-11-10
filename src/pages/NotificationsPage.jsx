@@ -20,12 +20,20 @@ import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
 import { apiClient } from '@/lib/api'
 
+/**
+ * NotificationsPage
+ * -----------------
+ * Fetches notifications for the logged-in user with pagination, unread counts,
+ * filtering, and inline actions (mark read/delete). Mirrors behaviour of a typical inbox.
+ */
 const NotificationsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
+  // Selected filter tab
   const [filter, setFilter] = useState('all')
 
+  // Infinite scroll style pagination meta
   const [notifications, setNotifications] = useState([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -34,6 +42,7 @@ const NotificationsPage = () => {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isUnreadLoading, setIsUnreadLoading] = useState(false)
 
+  // Lightweight endpoint to update the unread badge.
   const fetchUnreadCount = useCallback(async () => {
     if (!user?._id) return
     try {
@@ -47,6 +56,7 @@ const NotificationsPage = () => {
     }
   }, [user?._id])
 
+  // Shared fetcher used by initial load and "load more" button.
   const fetchNotifications = useCallback(
     async (pageToLoad = 1, append = false) => {
       if (!user?._id) return
@@ -85,6 +95,7 @@ const NotificationsPage = () => {
     [toast, user?._id]
   )
 
+  // Kick off queries whenever the user context changes.
   useEffect(() => {
     if (user?._id) {
       fetchNotifications(1, false)
@@ -158,6 +169,7 @@ const NotificationsPage = () => {
     }
   }
 
+  // Map backend notification types to icons.
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'appointment_created':
@@ -246,7 +258,7 @@ const NotificationsPage = () => {
           </div>
         </div>
 
-        {/* Filter Tabs */}
+        {/* --- Filter Tabs --- */}
         <div className="mb-6 flex gap-2">
           <Button
             variant={filter === 'all' ? 'default' : 'outline'}
@@ -275,7 +287,7 @@ const NotificationsPage = () => {
           </Button>
         </div>
 
-        {/* Notifications List */}
+        {/* --- Notifications List --- */}
         {isInitialLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, idx) => (

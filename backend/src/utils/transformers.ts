@@ -1,3 +1,5 @@
+// Maps Prisma entities into JSON payloads that the frontend expects.
+// Handles decimal/date conversions and denormalized relation summaries.
 import type {
   Appointment,
   MedicalRecord,

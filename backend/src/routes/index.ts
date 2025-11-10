@@ -1,3 +1,4 @@
+// Root API router: composes feature routers under /api/*
 import { Router } from "express";
 import authRouter from "./auth.routes";
 import usersRouter from "./users.routes";
@@ -7,6 +8,7 @@ import medicalRecordsRouter from "./medicalRecords.routes";
 
 const router = Router();
 
+// Simple liveness check for monitoring
 router.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });

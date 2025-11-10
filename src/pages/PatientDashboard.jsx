@@ -23,6 +23,12 @@ import UserRoleBadge from '@/components/UserRoleBadge'
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
 import { apiClient } from '@/lib/api'
 
+/**
+ * PatientDashboard
+ * ----------------
+ * Patient-centric view showing appointments, medical records, and quick links.
+ * Mirrors the doctor dashboard structure but focused on patient-specific actions.
+ */
 const PatientDashboard = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -33,6 +39,7 @@ const PatientDashboard = () => {
   const [medicalRecords, setMedicalRecords] = useState([])
   const [recordsLoading, setRecordsLoading] = useState(false)
 
+  // Fetch patient's appointments
   useEffect(() => {
     let cancelled = false
 
@@ -69,6 +76,7 @@ const PatientDashboard = () => {
     }
   }, [user?._id])
 
+  // Fetch patient's medical records
   useEffect(() => {
     let cancelled = false
 
@@ -102,7 +110,7 @@ const PatientDashboard = () => {
     }
   }, [user?._id])
 
-  // Calculate statistics
+  // Summaries for the KPI cards
   const stats = {
     totalAppointments: appointments?.length || 0,
     upcomingAppointments: appointments?.filter(apt => 
@@ -129,7 +137,7 @@ const PatientDashboard = () => {
       <TopNavigation />
       
       <div className="mx-auto max-w-7xl px-4 py-6 pt-32">
-        {/* Header */}
+        {/* --- Header --- */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-[#102851]">
@@ -177,7 +185,7 @@ const PatientDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* --- Stats Cards --- */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-[#E4EBF5] bg-white shadow-[0_10px_25px_rgba(18,42,76,0.08)]">
             <CardContent className="p-6">
@@ -236,7 +244,7 @@ const PatientDashboard = () => {
           </Card>
         </div>
 
-        {/* Main Content */}
+        {/* --- Main Content --- */}
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Upcoming Appointments */}
           <div className="lg:col-span-2">

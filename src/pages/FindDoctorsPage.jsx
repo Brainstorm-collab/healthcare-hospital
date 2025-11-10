@@ -10,6 +10,10 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { apiClient } from '@/lib/api'
 
+/**
+ * Lightweight debounce hook.
+ * Keeps the UI responsive by waiting for the user to pause typing before triggering expensive work.
+ */
 const useDebounce = (value, delay = 250) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -21,7 +25,8 @@ const useDebounce = (value, delay = 250) => {
   return debouncedValue
 }
 
-// Generate time slots for the next 7 days
+// Generate static time slots for the next 7 days.
+// In a production environment this would likely come from the backend.
 const generateTimeSlots = () => {
   const slots = []
   const today = new Date()
@@ -51,11 +56,19 @@ const generateTimeSlots = () => {
   return slots
 }
 
+// Precompute slots once; reused across doctor cards to keep things fast.
 const daySlots = generateTimeSlots()
 
+/**
+ * DoctorCard
+ * ----------
+ * Render memoized doctor info + disclosure for selecting a slot.
+ * Handles its own day/time selection state so cards stay independent.
+ */
 const DoctorCard = memo(({ doctor, expanded, onToggle, onBookAppointment, currentUser }) => {
   const [selectedDay, setSelectedDay] = useState(0)
   const [selectedTime, setSelectedTime] = useState(null)
+  // Active day's slot metadata (recomputes when user switches the day)
   const slots = useMemo(() => daySlots[selectedDay], [selectedDay])
 
   const handleTimeSelect = (time) => {
@@ -238,11 +251,19 @@ const DoctorCard = memo(({ doctor, expanded, onToggle, onBookAppointment, curren
   )
 })
 
+/**
+ * FindDoctorsPage
+ * ---------------
+ * Master page for browsing doctors: handles filters, debounced search, pagination,
+ * and booking appointments via the DoctorCard component.
+ */
 const FindDoctorsPage = () => {
   const { user: currentUser } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
+  // Expanded card id (only one doctor open at a time)
   const [expandedDoctor, setExpandedDoctor] = useState(null)
+  // Raw input values from the filter bar
   const [searchQuery, setSearchQuery] = useState('')
   const [locationQuery, setLocationQuery] = useState('')
   const [specializationQuery, setSpecializationQuery] = useState('')
@@ -253,12 +274,14 @@ const FindDoctorsPage = () => {
   const debouncedLocation = useDebounce(locationQuery, 250)
   const debouncedSearch = useDebounce(searchQuery, 250)
 
+  // API pagination/state management
   const [doctors, setDoctors] = useState([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
 
+  // Core fetcher that can either replace or append results.
   const fetchDoctors = useCallback(
     async (pageToLoad = 1, append = false) => {
       const params = {
@@ -366,6 +389,7 @@ const FindDoctorsPage = () => {
       <TopNavigation />
 
       <main className="mx-auto mt-36 max-w-[1170px] px-6 pb-24">
+        {/* --- Filter bar with search/location inputs --- */}
         <div className="rounded-[15px] border border-[#E6ECF5] bg-white p-6 shadow-[0_6px_35px_rgba(16,40,81,0.11)]">
           <div className="grid gap-4 md:grid-cols-[1.1fr_1.1fr_auto] lg:grid-cols-[1.1fr_1.1fr_1fr_auto]">
             <div className="flex h-[56px] items-center gap-3 rounded-lg border border-[#DCE6F5] bg-[#F5F8FF] px-5">
@@ -444,6 +468,7 @@ const FindDoctorsPage = () => {
           </div>
         </div>
 
+        {/* --- Results + sidebar layout --- */}
         <div className="mt-10 flex flex-col gap-6 lg:flex-row">
           <div className="flex-1 space-y-6">
             <div className="space-y-2">
@@ -459,6 +484,7 @@ const FindDoctorsPage = () => {
               </p>
             </div>
 
+            {/* --- Loading, empty state, or list of doctors --- */}
             {isInitialLoading ? (
               <div className="grid gap-6 md:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, idx) => (

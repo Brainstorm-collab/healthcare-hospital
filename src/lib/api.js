@@ -1,3 +1,7 @@
+// apiClient
+// ---------
+// Minimal wrapper around fetch with base URL, query param building,
+// and consistent JSON error handling.
 const API_BASE_URL =
   import.meta.env.VITE_API_URL?.replace(/\/$/, "") ?? "http://localhost:8000/api";
 
@@ -5,6 +9,7 @@ const defaultHeaders = {
   "Content-Type": "application/json",
 };
 
+// Parse JSON when available; surface API-provided error messages.
 const handleResponse = async (response) => {
   const contentType = response.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
@@ -20,6 +25,7 @@ const handleResponse = async (response) => {
   return data;
 };
 
+// Build absolute URL from base + path; append non-empty query params.
 const buildUrl = (path, params) => {
   const url = new URL(path.startsWith("http") ? path : `${API_BASE_URL}${path}`);
   if (params) {
