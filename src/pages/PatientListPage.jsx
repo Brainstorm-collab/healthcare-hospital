@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,32 +7,68 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { User, Mail, Phone, Calendar, Search, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { apiClient } from '@/lib/api'
 
 const PatientListPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Get all appointments for this doctor to extract unique patients
-  const appointments = useQuery(
-    api.appointments.getAppointmentsByUser,
-    user?._id ? { userId: user._id, role: 'doctor' } : 'skip'
-  )
+  const [appointments, setAppointments] = useState([])
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
-  // Extract unique patients from appointments
-  const uniquePatients = appointments?.reduce((acc, apt) => {
-    if (apt.patient && !acc.find(p => p._id === apt.patientId)) {
-      acc.push({
-        _id: apt.patientId,
-        name: apt.patient.name,
-        email: apt.patient.email,
-        phone: apt.patient.phone,
-        lastAppointment: apt.date,
-        totalAppointments: appointments.filter(a => a.patientId === apt.patientId).length,
-      })
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAppointments = async () => {
+      if (!user?._id) {
+        setAppointments([])
+        return
+      }
+
+      try {
+        setAppointmentsLoading(true)
+        const response = await apiClient.get('/appointments', {
+          userId: user._id,
+          role: 'doctor',
+        })
+        if (!cancelled) {
+          setAppointments(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch appointments:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setAppointmentsLoading(false)
+        }
+      }
     }
+
+    loadAppointments()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id])
+
+  const uniquePatients = useMemo(() => {
+    const acc = []
+    appointments.forEach((apt) => {
+      if (apt.patient && !acc.find((p) => p._id === apt.patientId)) {
+        acc.push({
+          _id: apt.patientId,
+          name: apt.patient.name,
+          email: apt.patient.email,
+          phone: apt.patient.phone,
+          lastAppointment: apt.date,
+          totalAppointments: appointments.filter((a) => a.patientId === apt.patientId).length,
+        })
+      }
+    })
     return acc
-  }, []) || []
+  }, [appointments])
 
   const filteredPatients = uniquePatients.filter(patient =>
     searchQuery === '' ||
@@ -75,7 +109,7 @@ const PatientListPage = () => {
           </CardContent>
         </Card>
 
-        {appointments === undefined ? (
+        {appointmentsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
           </div>

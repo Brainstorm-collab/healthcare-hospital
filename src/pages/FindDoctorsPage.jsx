@@ -1,6 +1,4 @@
-import { memo, useEffect, useMemo, useState, useTransition } from 'react'
-import { useMutation, usePaginatedQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { memo, useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import TopNavigation from '@/components/layout/TopNavigation'
@@ -10,6 +8,7 @@ import FooterSection from '@/components/sections/FooterSection'
 import { Filter, MapPin, SlidersHorizontal, Star, CheckCircle2, XCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { apiClient } from '@/lib/api'
 
 const useDebounce = (value, delay = 250) => {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -254,25 +253,60 @@ const FindDoctorsPage = () => {
   const debouncedLocation = useDebounce(locationQuery, 250)
   const debouncedSearch = useDebounce(searchQuery, 250)
 
-  const doctorQueryArgs = useMemo(
-    () => ({
-      specialization: debouncedSpecialization || undefined,
-      location: debouncedLocation || undefined,
-      search: debouncedSearch || undefined,
-    }),
-    [debouncedSpecialization, debouncedLocation, debouncedSearch]
+  const [doctors, setDoctors] = useState([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+
+  const fetchDoctors = useCallback(
+    async (pageToLoad = 1, append = false) => {
+      const params = {
+        page: pageToLoad,
+        limit: 8,
+        specialization: debouncedSpecialization || undefined,
+        location: debouncedLocation || undefined,
+        search: debouncedSearch || undefined,
+      }
+
+      try {
+        if (append) {
+          setIsLoadingMore(true)
+        } else {
+          setIsInitialLoading(true)
+        }
+
+        const response = await apiClient.get('/users/doctors', params)
+        const items = response?.data ?? []
+
+        setDoctors((prev) => (append ? [...prev, ...items] : items))
+        setHasMore(response?.pagination?.hasMore ?? false)
+        setPage(pageToLoad)
+      } catch (error) {
+        console.error('Failed to fetch doctors:', error)
+        toast.error('Failed to load doctors', error.message || 'Please try again later.')
+        if (!append) {
+          setDoctors([])
+        }
+      } finally {
+        if (append) {
+          setIsLoadingMore(false)
+        } else {
+          setIsInitialLoading(false)
+        }
+      }
+    },
+    [debouncedLocation, debouncedSearch, debouncedSpecialization, toast]
   )
 
-  const {
-    results: doctorResults,
-    status: doctorsStatus,
-    loadMore: loadMoreDoctors,
-  } = usePaginatedQuery(api.doctors.listDoctors, doctorQueryArgs, {
-    initialNumItems: 8,
-  })
+  useEffect(() => {
+    fetchDoctors(1, false)
+  }, [fetchDoctors])
 
-  // Create appointment mutation
-  const createAppointment = useMutation(api.appointments.createAppointment)
+  const handleLoadMoreDoctors = () => {
+    if (!hasMore || isLoadingMore) return
+    fetchDoctors(page + 1, true)
+  }
 
   const handleBookAppointment = async (doctorId, date, time) => {
     if (!currentUser) {
@@ -287,7 +321,7 @@ const FindDoctorsPage = () => {
     }
 
     try {
-      await createAppointment({
+      await apiClient.post('/appointments', {
         patientId: currentUser._id,
         doctorId: doctorId,
         date: date,
@@ -312,7 +346,7 @@ const FindDoctorsPage = () => {
 
   // Filter doctors based on availability
   const filteredDoctors = useMemo(() => {
-    const source = doctorResults ?? []
+    const source = doctors ?? []
 
     let filtered = source
 
@@ -321,17 +355,7 @@ const FindDoctorsPage = () => {
     }
 
     return filtered
-  }, [doctorResults, filterAvailable])
-
-  const isInitialLoading = doctorsStatus === 'LoadingFirstPage'
-  const isLoadingMore = doctorsStatus === 'LoadingMore'
-  const canLoadMore = doctorsStatus === 'CanLoadMore'
-
-  useEffect(() => {
-    if (!isInitialLoading && !isLoadingMore && canLoadMore && filteredDoctors.length === 0) {
-      loadMoreDoctors(12)
-    }
-  }, [filteredDoctors.length, canLoadMore, isInitialLoading, isLoadingMore, loadMoreDoctors])
+  }, [doctors, filterAvailable])
 
   useEffect(() => {
     setExpandedDoctor(null)
@@ -485,14 +509,14 @@ const FindDoctorsPage = () => {
                     currentUser={currentUser}
                   />
                 ))}
-                {(canLoadMore || isLoadingMore) && (
+                {(hasMore || isLoadingMore) && (
                   <div className="flex justify-center pt-4">
                     <Button
-                      onClick={() => loadMoreDoctors(8)}
-                      disabled={isLoadingMore || !canLoadMore}
+                      onClick={handleLoadMoreDoctors}
+                      disabled={isLoadingMore || !hasMore}
                       className="bg-[#2AA8FF] text-white hover:bg-[#1896f0]"
                     >
-                      {isLoadingMore ? 'Loading…' : canLoadMore ? 'Load more doctors' : 'No more results'}
+                      {isLoadingMore ? 'Loading…' : hasMore ? 'Load more doctors' : 'No more results'}
                     </Button>
                   </div>
                 )}
@@ -527,7 +551,7 @@ const FindDoctorsPage = () => {
                   onClick={() => {
                     // Get user's current location
                     if (navigator.geolocation) {
-                      navigator.geolocation.getCurrentPosition((position) => {
+                      navigator.geolocation.getCurrentPosition(() => {
                         // In a real app, you'd reverse geocode this
                         setLocationQuery('Current Location')
                       })

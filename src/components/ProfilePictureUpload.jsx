@@ -1,11 +1,10 @@
 import { useState, useRef } from 'react'
-import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Camera, Loader2, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
+import { apiClient } from '@/lib/api'
 
 const ProfilePictureUpload = ({ userId, currentImage, onUploadComplete }) => {
   const { updateProfile } = useAuth()
@@ -14,9 +13,6 @@ const ProfilePictureUpload = ({ userId, currentImage, onUploadComplete }) => {
   const [preview, setPreview] = useState(null)
   const fileInputRef = useRef(null)
   
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl)
-  const saveProfilePicture = useMutation(api.files.saveProfilePicture)
-
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -48,36 +44,17 @@ const ProfilePictureUpload = ({ userId, currentImage, onUploadComplete }) => {
     try {
       setUploading(true)
 
-      // Step 1: Generate upload URL
-      const uploadUrl = await generateUploadUrl()
-
-      // Step 2: Upload file to Convex storage
-      const result = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
+      const toBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
       })
 
-      if (!result.ok) {
-        throw new Error('Upload failed')
-      }
+      const base64Image = typeof toBase64 === 'string' ? toBase64 : ''
 
-      // Convex returns the storageId as JSON: {"storageId":"..."}
-      const responseData = await result.json()
-      const storageId = responseData.storageId
-      
-      if (!storageId) {
-        throw new Error('Failed to get storage ID from upload response')
-      }
-
-      // Step 3: Save profile picture URL to user
-      const { url } = await saveProfilePicture({
-        userId,
-        storageId,
-      })
-
-      // Step 4: Update local auth context
-      await updateProfile({ profileImage: url })
+      await apiClient.patch(`/users/${userId}`, { profileImage: base64Image })
+      await updateProfile({ profileImage: base64Image })
 
       setPreview(null)
       if (fileInputRef.current) {
@@ -85,7 +62,7 @@ const ProfilePictureUpload = ({ userId, currentImage, onUploadComplete }) => {
       }
 
       toast.success('Profile picture uploaded', 'Your profile picture has been updated successfully')
-      onUploadComplete?.(url)
+      onUploadComplete?.(base64Image)
     } catch (error) {
       console.error('Upload error:', error)
       toast.error('Upload failed', 'Failed to upload profile picture. Please try again.')
@@ -100,6 +77,7 @@ const ProfilePictureUpload = ({ userId, currentImage, onUploadComplete }) => {
     }
 
     try {
+      await apiClient.patch(`/users/${userId}`, { profileImage: '' })
       await updateProfile({ profileImage: '' })
       setPreview(null)
       if (fileInputRef.current) {

@@ -1,24 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
-import { useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import ProfilePictureUpload from '@/components/ProfilePictureUpload'
-import { User, Mail, Phone, MapPin, Stethoscope, Briefcase, DollarSign, Hospital, Save, ArrowLeft, Loader2 } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Stethoscope, Briefcase, DollarSign, Hospital, Save, ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useToast } from '@/contexts/ToastContext'
+import { apiClient } from '@/lib/api'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const ProfilePage = () => {
-  const { user, updateProfile, isLoading: authLoading } = useAuth()
+  const { user, updateProfile, deleteAccount, isLoading: authLoading } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
   const theme = useTheme()
-  const updateProfileMutation = useMutation(api.users.updateProfile)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +40,9 @@ const ProfilePage = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   // Load user data into form
   useEffect(() => {
@@ -104,7 +113,6 @@ const ProfilePage = () => {
 
     try {
       const updates = {
-        userId: user._id,
         name: formData.name,
         phone: formData.phone || undefined,
         address: formData.address || undefined,
@@ -117,7 +125,7 @@ const ProfilePage = () => {
         }),
       }
 
-      await updateProfileMutation(updates)
+      await apiClient.patch(`/users/${user._id}`, updates)
       await updateProfile(updates)
 
       toast.success('Profile updated', 'Your profile has been updated successfully')
@@ -129,9 +137,26 @@ const ProfilePage = () => {
     }
   }
 
-  const handlePictureUploadComplete = async (url) => {
+  const handlePictureUploadComplete = () => {
     // Profile picture is already updated in ProfilePictureUpload component
     // Toast is shown in ProfilePictureUpload component
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!user) return
+    setIsDeletingAccount(true)
+    setDeleteError('')
+
+    const result = await deleteAccount()
+
+    if (!result.success) {
+      setDeleteError(result.error || 'Failed to delete account. Please try again.')
+      setIsDeletingAccount(false)
+      return
+    }
+
+    setIsDeletingAccount(false)
+    setIsDeleteDialogOpen(false)
   }
 
   if (authLoading || !user) {
@@ -406,6 +431,89 @@ const ProfilePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mt-10 border border-red-200 bg-white shadow-soft">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold text-red-600">Danger Zone</CardTitle>
+            <CardDescription className="text-[#5C6169]">
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-[#5C6169]">
+                Deleting your account will remove your profile, appointments, notifications, and medical records.
+              </p>
+              <p className="text-sm text-[#5C6169]">
+                You will need to create a new account to use the platform again.
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                setDeleteError('')
+                setIsDeleteDialogOpen(true)
+              }}
+              className="inline-flex items-center gap-2 bg-red-600 text-white hover:bg-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Account
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Dialog
+          open={isDeleteDialogOpen}
+          onOpenChange={(open) => {
+            if (!open && !isDeletingAccount) {
+              setIsDeleteDialogOpen(false)
+              setDeleteError('')
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete account</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete your account? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 text-sm text-[#5C6169]">
+              <p>
+                All of your appointments, notifications, and medical records will be deleted permanently.
+              </p>
+              {deleteError && <p className="text-red-600">{deleteError}</p>}
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isDeletingAccount}
+                onClick={() => {
+                  if (isDeletingAccount) return
+                  setIsDeleteDialogOpen(false)
+                  setDeleteError('')
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="bg-red-600 text-white hover:bg-red-700"
+                disabled={isDeletingAccount}
+                onClick={handleDeleteAccount}
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Yes, delete my account'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
       <FooterSection />
     </div>

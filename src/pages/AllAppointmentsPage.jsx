@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar, Clock, User, Stethoscope, Filter, Search, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
+import { apiClient } from '@/lib/api'
 
 const AllAppointmentsPage = () => {
   const { user } = useAuth()
@@ -17,12 +16,46 @@ const AllAppointmentsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
 
-  const appointments = useQuery(
-    api.appointments.getAppointmentsByUser,
-    user?._id ? { userId: user._id, role: user.role } : 'skip'
-  )
+  const [appointments, setAppointments] = useState([])
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
-  const filteredAppointments = appointments?.filter(apt => {
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAppointments = async () => {
+      if (!user?._id) {
+        setAppointments([])
+        return
+      }
+
+      try {
+        setAppointmentsLoading(true)
+        const response = await apiClient.get('/appointments', {
+          userId: user._id,
+          role: user.role,
+        })
+        if (!cancelled) {
+          setAppointments(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch appointments:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setAppointmentsLoading(false)
+        }
+      }
+    }
+
+    loadAppointments()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id, user.role])
+
+  const filteredAppointments = useMemo(() => appointments.filter(apt => {
     const matchesStatus = statusFilter === 'all' || apt.status === statusFilter
     const matchesSearch = searchQuery === '' || 
       (user.role === 'doctor' 
@@ -31,7 +64,7 @@ const AllAppointmentsPage = () => {
         : apt.doctor?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           apt.doctor?.specialization?.toLowerCase().includes(searchQuery.toLowerCase()))
     return matchesStatus && matchesSearch
-  }) || []
+  }), [appointments, searchQuery, statusFilter, user.role]) || []
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -100,7 +133,7 @@ const AllAppointmentsPage = () => {
           </CardContent>
         </Card>
 
-        {appointments === undefined ? (
+        {appointmentsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
           </div>

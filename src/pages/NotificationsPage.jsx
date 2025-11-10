@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery, useMutation, usePaginatedQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/contexts/ToastContext'
+import { apiClient } from '@/lib/api'
 
 const NotificationsPage = () => {
   const { user } = useAuth()
@@ -27,40 +26,94 @@ const NotificationsPage = () => {
   const toast = useToast()
   const [filter, setFilter] = useState('all')
 
-  const notificationsArgs = user?._id ? { userId: user._id } : 'skip'
-  const {
-    results: notificationResults,
-    status: notificationsStatus,
-    loadMore: loadMoreNotifications,
-  } = usePaginatedQuery(api.notifications.getNotificationsByUser, notificationsArgs, {
-    initialNumItems: 12,
-  })
+  const [notifications, setNotifications] = useState([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [isUnreadLoading, setIsUnreadLoading] = useState(false)
 
-  // Get unread count
-  const unreadCount = useQuery(
-    api.notifications.getUnreadCount,
-    user?._id ? { userId: user._id } : 'skip'
+  const fetchUnreadCount = useCallback(async () => {
+    if (!user?._id) return
+    try {
+      setIsUnreadLoading(true)
+      const response = await apiClient.get('/notifications/unread-count', { userId: user._id })
+      setUnreadCount(response?.count ?? 0)
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error)
+    } finally {
+      setIsUnreadLoading(false)
+    }
+  }, [user?._id])
+
+  const fetchNotifications = useCallback(
+    async (pageToLoad = 1, append = false) => {
+      if (!user?._id) return
+      const params = {
+        userId: user._id,
+        page: pageToLoad,
+        limit: 12,
+      }
+
+      try {
+        if (append) {
+          setIsLoadingMore(true)
+        } else {
+          setIsInitialLoading(true)
+        }
+
+        const response = await apiClient.get('/notifications', params)
+        const items = response?.data ?? []
+        setNotifications((prev) => (append ? [...prev, ...items] : items))
+        setHasMore(response?.pagination?.hasMore ?? false)
+        setPage(pageToLoad)
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error)
+        toast.error('Failed to load notifications', error.message || 'Please try again later.')
+        if (!append) {
+          setNotifications([])
+        }
+      } finally {
+        if (append) {
+          setIsLoadingMore(false)
+        } else {
+          setIsInitialLoading(false)
+        }
+      }
+    },
+    [toast, user?._id]
   )
 
-  // Mutations
-  const markAsRead = useMutation(api.notifications.markAsRead)
-  const markAllAsRead = useMutation(api.notifications.markAllAsRead)
-  const deleteNotification = useMutation(api.notifications.deleteNotification)
+  useEffect(() => {
+    if (user?._id) {
+      fetchNotifications(1, false)
+      fetchUnreadCount()
+    } else {
+      setNotifications([])
+      setUnreadCount(0)
+    }
+  }, [fetchNotifications, fetchUnreadCount, user?._id])
+
+  const handleLoadMoreNotifications = () => {
+    if (!hasMore || isLoadingMore) return
+    fetchNotifications(page + 1, true)
+  }
 
   // Filter notifications
-  const notifications = notificationResults ?? []
-
   const filteredNotifications = notifications.filter((notif) =>
     filter === 'all' ? true : !notif.read
   )
 
-  const isInitialLoading = notificationsStatus === 'LoadingFirstPage'
-  const isLoadingMore = notificationsStatus === 'LoadingMore'
-  const canLoadMore = notificationsStatus === 'CanLoadMore'
-
   const handleMarkAsRead = async (notificationId) => {
     try {
-      await markAsRead({ notificationId })
+      await apiClient.post(`/notifications/${notificationId}/read`)
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif._id === notificationId ? { ...notif, read: true, readAt: Date.now() } : notif
+        )
+      )
+      setUnreadCount((prev) => Math.max(prev - 1, 0))
       toast.success('Notification marked as read')
     } catch (error) {
       toast.error('Failed to mark notification as read', error.message)
@@ -70,7 +123,9 @@ const NotificationsPage = () => {
   const handleMarkAllAsRead = async () => {
     if (!user?._id) return
     try {
-      await markAllAsRead({ userId: user._id })
+      await apiClient.post('/notifications/mark-all-read', { userId: user._id })
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true, readAt: Date.now() })))
+      setUnreadCount(0)
       toast.success('All notifications marked as read')
     } catch (error) {
       toast.error('Failed to mark all as read', error.message)
@@ -79,7 +134,12 @@ const NotificationsPage = () => {
 
   const handleDelete = async (notificationId) => {
     try {
-      await deleteNotification({ notificationId })
+      await apiClient.delete(`/notifications/${notificationId}`)
+      setNotifications((prev) => prev.filter((notif) => notif._id !== notificationId))
+      const removedNotification = notifications.find((notif) => notif._id === notificationId)
+      if (removedNotification && !removedNotification.read) {
+        setUnreadCount((prev) => Math.max(prev - 1, 0))
+      }
       toast.success('Notification deleted')
     } catch (error) {
       toast.error('Failed to delete notification', error.message)
@@ -166,12 +226,14 @@ const NotificationsPage = () => {
             <div>
               <h1 className="text-3xl font-bold text-[#102851]">Notifications</h1>
               <p className="text-[#5C6169] mt-2">
-                {unreadCount !== undefined && unreadCount > 0
+                {isUnreadLoading
+                  ? 'Checking notifications...'
+                  : unreadCount > 0
                   ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
                   : 'All caught up!'}
               </p>
             </div>
-            {unreadCount !== undefined && unreadCount > 0 && (
+            {unreadCount > 0 && (
               <Button
                 variant="outline"
                 onClick={handleMarkAllAsRead}
@@ -207,7 +269,7 @@ const NotificationsPage = () => {
             }
           >
             Unread
-            {unreadCount !== undefined && unreadCount > 0 && (
+            {unreadCount > 0 && (
               <Badge className="ml-2 bg-[#EF4444] text-white">{unreadCount}</Badge>
             )}
           </Button>
@@ -305,15 +367,15 @@ const NotificationsPage = () => {
                 </CardContent>
               </Card>
             ))}
-            {(canLoadMore || isLoadingMore) && (
+            {(hasMore || isLoadingMore) && (
               <div className="flex justify-center pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => loadMoreNotifications(8)}
-                  disabled={isLoadingMore}
+                  onClick={handleLoadMoreNotifications}
+                  disabled={isLoadingMore || !hasMore}
                   className="border-[#DCE6F5] text-[#102851] hover:bg-[#F5F8FF] hover:text-[#102851]"
                 >
-                  {isLoadingMore ? 'Loading…' : 'Load more notifications'}
+                  {isLoadingMore ? 'Loading…' : hasMore ? 'Load more notifications' : 'No more notifications'}
                 </Button>
               </div>
             )}

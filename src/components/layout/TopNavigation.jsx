@@ -1,15 +1,15 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { navLinks } from '@/data/homepage'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
 import UserRoleBadge from '@/components/UserRoleBadge'
-import { LogOut, User as UserIcon, ChevronDown, ShieldCheck, Menu, X } from 'lucide-react'
+import { LogOut, ChevronDown, ShieldCheck, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const TopNavigation = () => {
   const location = useLocation()
-  const navigate = useNavigate()
   const { isAuthenticated, user, logout } = useAuth()
   const { totalItems } = useCart()
   const [showUserMenu, setShowUserMenu] = useState(false)
@@ -103,9 +103,15 @@ const TopNavigation = () => {
                       onClick={() => setShowUserMenu(!showUserMenu)}
                       className="flex items-center gap-2 rounded-lg border border-[#DCE6F5] bg-white px-4 py-2 text-sm font-semibold text-[#102851] hover:bg-[#F5F8FF] transition"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2AA8FF]/10 text-[#2AA8FF]">
-                        <UserIcon className="h-4 w-4" />
-                      </div>
+                      <Avatar className="h-8 w-8 border border-[#DCE6F5]">
+                        <AvatarImage
+                          src={user.profileImage || undefined}
+                          alt={user.name || 'User profile'}
+                        />
+                        <AvatarFallback className="bg-[#2AA8FF]/10 text-[#2AA8FF] text-sm font-semibold">
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="max-w-[120px] truncate">{user.name?.split(' ')[0] || 'User'}</span>
                       <ChevronDown className="h-4 w-4 text-[#5C6169]" />
                     </button>
@@ -226,9 +232,15 @@ const TopNavigation = () => {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2 rounded-lg border border-[#DCE6F5] bg-white px-3 py-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#2AA8FF]/10 text-[#2AA8FF]">
-                        <UserIcon className="h-4 w-4" />
-                      </div>
+                      <Avatar className="h-8 w-8 border border-[#DCE6F5]">
+                        <AvatarImage
+                          src={user.profileImage || undefined}
+                          alt={user.name || 'User profile'}
+                        />
+                        <AvatarFallback className="bg-[#2AA8FF]/10 text-[#2AA8FF] text-sm font-semibold">
+                          {user.name?.charAt(0)?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
                       <span className="truncate text-sm font-semibold text-[#102851]">
                         {user.name || 'User'}
                       </span>

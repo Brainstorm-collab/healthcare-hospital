@@ -29,6 +29,6 @@ dist-ssr
 .env.production.local
 .env.development.local
 
-# Convex
-.convex/
-convex/_generated/
+# Backend build artifacts
+backend/dist
+backend/node_modules

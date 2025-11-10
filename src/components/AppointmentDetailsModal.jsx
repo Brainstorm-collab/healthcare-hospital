@@ -1,5 +1,4 @@
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
+import { useEffect, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -11,35 +10,71 @@ import { Button } from '@/components/ui/button'
 import { Calendar, Clock, User, Stethoscope, FileText, MapPin, Phone, Mail, X } from 'lucide-react'
 import { useToast } from '@/contexts/ToastContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { apiClient } from '@/lib/api'
 
 const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
   const { user } = useAuth()
   const toast = useToast()
-  const appointment = useQuery(
-    api.appointments.getAppointmentById,
-    appointmentId ? { appointmentId } : 'skip'
-  )
-  const updateStatus = useMutation(api.appointments.updateAppointmentStatus)
+  const [appointment, setAppointment] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
-  if (!appointment) {
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAppointment = async () => {
+      if (!appointmentId || !open) {
+        setAppointment(null)
+        return
+      }
+
+      try {
+        setIsLoading(true)
+        const response = await apiClient.get(`/appointments/${appointmentId}`)
+        if (!cancelled) {
+          setAppointment(response ?? null)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch appointment:', error)
+          toast.error('Failed to load appointment details', error.message || 'Please try again.')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadAppointment()
+
+    return () => {
+      cancelled = true
+    }
+  }, [appointmentId, open, toast])
+
+  if (!appointment && !isLoading) {
     return null
   }
 
   const handleStatusUpdate = async (newStatus) => {
     try {
-      await updateStatus({
-        appointmentId: appointment._id,
+      setIsUpdatingStatus(true)
+      const response = await apiClient.patch(`/appointments/${appointment._id}/status`, {
         status: newStatus,
       })
+      const updatedAppointment = response?.appointment ?? null
+      if (updatedAppointment) {
+        setAppointment(updatedAppointment)
+      }
       toast.success('Status updated', `Appointment status changed to ${newStatus}`)
       onOpenChange(false)
     } catch (error) {
       toast.error('Update failed', error.message || 'Failed to update appointment status')
+    } finally {
+      setIsUpdatingStatus(false)
     }
   }
-
-  const canUpdateStatus = user?.role === 'doctor' && 
-    (appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'completed')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,6 +86,9 @@ const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
           </DialogDescription>
         </DialogHeader>
 
+        {isLoading ? (
+          <div className="py-12 text-center text-[#5C6169]">Loading appointment details…</div>
+        ) : appointment ? (
         <div className="space-y-6 mt-4">
           {/* Status Badge */}
           <div className="flex items-center justify-between">
@@ -71,6 +109,7 @@ const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
                   <Button
                     size="sm"
                     onClick={() => handleStatusUpdate('confirmed')}
+                    disabled={isUpdatingStatus}
                     className="bg-[#10B981] text-white hover:bg-[#059669]"
                   >
                     Confirm
@@ -81,6 +120,7 @@ const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
                     size="sm"
                     variant="outline"
                     onClick={() => handleStatusUpdate('completed')}
+                    disabled={isUpdatingStatus}
                     className="border-[#3B82F6] text-[#3B82F6] hover:bg-[#3B82F6]/10"
                   >
                     Mark Complete
@@ -91,6 +131,7 @@ const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
                     size="sm"
                     variant="outline"
                     onClick={() => handleStatusUpdate('cancelled')}
+                    disabled={isUpdatingStatus}
                     className="border-red-300 text-red-600 hover:bg-red-50"
                   >
                     Cancel
@@ -240,6 +281,7 @@ const AppointmentDetailsModal = ({ appointmentId, open, onOpenChange }) => {
             </div>
           )}
         </div>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

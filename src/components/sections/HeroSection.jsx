@@ -254,7 +254,7 @@ const HeroSection = () => {
                 alt="Medical specialists"
                 className="mx-auto h-[440px] w-full object-contain"
                 loading="eager"
-                fetchpriority="high"
+                fetchPriority="high"
                 decoding="async"
                 onError={(e) => {
                   e.currentTarget.src = 'https://via.placeholder.com/520x440?text=Doctors';

@@ -1,6 +1,6 @@
 # Healthcare & Hospital Management Platform
 
-A modern patient and doctor portal built with React, Vite, Tailwind CSS, and Convex. The application offers frictionless appointment booking, medical record management, real-time notifications, and a fully responsive UI for both patients and healthcare providers.
+A modern patient and doctor portal built with React, Vite, Tailwind CSS, and an Express/Prisma/PostgreSQL backend. The application offers frictionless appointment booking, medical record management, notifications, and a fully responsive UI for both patients and healthcare providers.
 
 ![Application preview](./public/Screenshot%202025-11-09%20154203.png)
 
@@ -8,10 +8,10 @@ A modern patient and doctor portal built with React, Vite, Tailwind CSS, and Con
 
 - 🩺 **Patient experience** – discover doctors, compare availability, book appointments, view medical records, and receive live updates.
 - 🩻 **Doctor workspace** – manage schedules, review appointments, update consultation notes, and stay in sync with patients.
-- 🔔 **Real-time notifications** – powered by Convex subscriptions to keep dashboards and alerts up to date without page refreshes.
+- 🔔 **Real-time notifications** – delivered through the Express API so dashboards stay in sync without page refreshes.
 - 🔐 **Authentication & social sign-in** – email/password plus Google OAuth with role-based routing.
 - 📱 **Responsive design** – mobile-first layouts using Tailwind CSS and shadcn/ui.
-- ⚡ **Performance-oriented UX** – paginated Convex queries, debounced filters, and toast-driven feedback for all major flows.
+- ⚡ **Performance-oriented UX** – paginated API responses, debounced filters, and toast-driven feedback for all major flows.
 
 ## Tech Stack
 
@@ -19,7 +19,7 @@ A modern patient and doctor portal built with React, Vite, Tailwind CSS, and Con
 |-----------|-------------------|
 | Frontend  | React 19, Vite, React Router |
 | Styling   | Tailwind CSS, shadcn/ui, Lucide Icons |
-| Backend   | Convex (data, auth, real-time functions) |
+| Backend   | Express, Prisma ORM, PostgreSQL |
 | Utilities | Sonner toasts, date-fns, modern React hooks |
 
 ## Quick Start
@@ -27,7 +27,7 @@ A modern patient and doctor portal built with React, Vite, Tailwind CSS, and Con
 ### Prerequisites
 
 - Node.js **18+**
-- A Convex account (free tier is enough)
+- PostgreSQL database (local or hosted)
 
 ### Installation
 
@@ -36,23 +36,33 @@ A modern patient and doctor portal built with React, Vite, Tailwind CSS, and Con
 git clone <repository-url>
 cd healthcare-hospital
 
-# Install dependencies
+# Install frontend dependencies
 npm install
 
-# Authenticate with Convex (generates config & types)
-npx convex login
-npx convex dev
+# Install backend dependencies
+cd backend
+npm install
+
+# Generate Prisma client
+npx prisma generate
+
+# Back to project root when ready to run the frontend
+cd ..
 ```
+
+Create a `.env` file inside `backend/` by copying `env.sample`, and set `DATABASE_URL` to your PostgreSQL connection string.
 
 ### Local Development
 
-Use two terminals to run both the Convex backend and the Vite dev server:
+Use two terminals to run both the Express backend and the Vite dev server:
 
 ```bash
-# Terminal 1 - Convex backend with live reload
-npm run convex:dev
+# Terminal 1 - Express + Prisma backend
+cd backend
+npm run dev
 
 # Terminal 2 - React/Vite frontend
+cd ..
 npm run dev
 ```
 
@@ -63,12 +73,10 @@ Navigate to **http://localhost:5173** and start exploring.
 ```
 healthcare-hospital/
 ├── public/                     # Static assets (including README screenshots)
-├── convex/                     # Convex backend functions & schema
-│   ├── schema.js               # Database schema definitions
-│   ├── auth.js                 # Authentication mutations/queries
-│   ├── doctors.js              # Doctor list & detail queries
-│   ├── appointments.js         # Appointment workflows & notifications
-│   └── ...                     # Additional collections (medical records, notifications, etc.)
+├── backend/                    # Express + Prisma backend
+│   ├── src/                    # Controllers, routes, services
+│   ├── prisma/                 # Prisma schema & migrations
+│   └── env.sample              # Backend environment template
 ├── src/
 │   ├── components/             # Reusable UI components
 │   ├── pages/                  # Route-level components
@@ -85,22 +93,22 @@ healthcare-hospital/
 | `npm run dev` | Start Vite development server |
 | `npm run build` | Create a production build |
 | `npm run preview` | Preview the production bundle |
-| `npm run convex:dev` | Run Convex backend locally |
-| `npm run convex:deploy` | Deploy Convex functions |
 
 ## Environment Variables
 
-Running `npx convex dev` generates a `.env.local` file with your project URL:
+Set the backend `.env` with your PostgreSQL connection string:
 
 ```env
-VITE_CONVEX_URL=https://<your-project>.convex.cloud
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE_NAME
+PORT=8000
 ```
 
-Add any additional secrets (e.g., Google OAuth client ID) to this file.
+The frontend can optionally use a `.env.local` file. If `VITE_API_URL` is not provided it defaults to `http://localhost:8000/api`.
 
 ## Additional Resources
 
-- [Convex Documentation](https://docs.convex.dev)
+- [Express Documentation](https://expressjs.com)
+- [Prisma Documentation](https://www.prisma.io/docs)
 - [React Documentation](https://react.dev)
 - Tailwind & shadcn/ui docs for styling patterns
 

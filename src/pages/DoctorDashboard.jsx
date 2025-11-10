@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -27,41 +25,63 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import UserRoleBadge from '@/components/UserRoleBadge'
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
 import { useToast } from '@/contexts/ToastContext'
+import { apiClient } from '@/lib/api'
 
 const DoctorDashboard = () => {
-  const { user, logout } = useAuth()
+  const { user, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const toast = useToast()
   const [isAvailable, setIsAvailable] = useState(user?.isAvailable ?? true)
   const [selectedAppointment, setSelectedAppointment] = useState(null)
   const [showFilter, setShowFilter] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
-  const [filterStatus, setFilterStatus] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
 
-  // Fetch doctor's appointments
-  const appointments = useQuery(
-    api.appointments.getAppointmentsByUser,
-    user?._id ? { userId: user._id, role: 'doctor' } : 'skip'
-  )
+  const [appointments, setAppointments] = useState([])
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false)
 
-  // Update availability mutation
-  const updateAvailability = useMutation(api.users.updateAvailability)
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAppointments = async () => {
+      if (!user?._id) {
+        setAppointments([])
+        return
+      }
+
+      try {
+        setAppointmentsLoading(true)
+        const response = await apiClient.get('/appointments', {
+          userId: user._id,
+          role: 'doctor',
+        })
+        if (!cancelled) {
+          setAppointments(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch appointments:', error)
+          toast.error('Failed to load appointments', error.message || 'Please try again.')
+        }
+      } finally {
+        if (!cancelled) {
+          setAppointmentsLoading(false)
+        }
+      }
+    }
+
+    loadAppointments()
+
+    return () => {
+      cancelled = true
+    }
+  }, [toast, user?._id])
 
   // Calculate statistics
   const today = new Date().toISOString().split('T')[0]
   
   // Filter today's appointments
   let todayAppointments = appointments?.filter(apt => apt.date === today) || []
-  if (filterStatus !== 'all') {
-    todayAppointments = todayAppointments.filter(apt => apt.status === filterStatus)
-  }
-  if (searchQuery) {
-    todayAppointments = todayAppointments.filter(apt =>
-      apt.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      apt.patient?.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  }
+  // Additional filtering (status or search) can be added here if needed
   
   const upcomingAppointments = appointments?.filter(apt => 
     (apt.status === 'confirmed' || apt.status === 'pending') && apt.date >= today
@@ -76,13 +96,19 @@ const DoctorDashboard = () => {
 
   const handleToggleAvailability = async () => {
     try {
-      await updateAvailability({
-        doctorId: user._id,
-        isAvailable: !isAvailable,
+      const nextAvailability = !isAvailable
+      await apiClient.patch(`/users/${user._id}/availability`, {
+        isAvailable: nextAvailability,
       })
-      setIsAvailable(!isAvailable)
+      setIsAvailable(nextAvailability)
+      await updateProfile({ isAvailable: nextAvailability })
+      toast.success(
+        'Availability updated',
+        nextAvailability ? 'You are now available for new appointments.' : 'You are now unavailable.'
+      )
     } catch (error) {
       console.error('Error updating availability:', error)
+      toast.error('Failed to update availability', error.message || 'Please try again.')
     }
   }
 
@@ -280,7 +306,7 @@ const DoctorDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {appointments === undefined ? (
+                {appointmentsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#2AA8FF] border-t-transparent"></div>
                   </div>

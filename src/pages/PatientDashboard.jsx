@@ -1,7 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { 
@@ -23,24 +21,86 @@ import TopNavigation from '@/components/layout/TopNavigation'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import UserRoleBadge from '@/components/UserRoleBadge'
 import AppointmentDetailsModal from '@/components/AppointmentDetailsModal'
+import { apiClient } from '@/lib/api'
 
 const PatientDashboard = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState('overview')
   const [selectedAppointment, setSelectedAppointment] = useState(null)
 
-  // Fetch patient's appointments
-  const appointments = useQuery(
-    api.appointments.getAppointmentsByUser,
-    user?._id ? { userId: user._id, role: 'patient' } : 'skip'
-  )
+  const [appointments, setAppointments] = useState([])
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false)
+  const [medicalRecords, setMedicalRecords] = useState([])
+  const [recordsLoading, setRecordsLoading] = useState(false)
 
-  // Fetch medical records
-  const medicalRecords = useQuery(
-    api.medicalRecords.getRecordsByPatient,
-    user?._id ? { patientId: user._id } : 'skip'
-  )
+  useEffect(() => {
+    let cancelled = false
+
+    const loadAppointments = async () => {
+      if (!user?._id) {
+        setAppointments([])
+        return
+      }
+
+      try {
+        setAppointmentsLoading(true)
+        const response = await apiClient.get('/appointments', {
+          userId: user._id,
+          role: 'patient',
+        })
+        if (!cancelled) {
+          setAppointments(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch appointments:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setAppointmentsLoading(false)
+        }
+      }
+    }
+
+    loadAppointments()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadMedicalRecords = async () => {
+      if (!user?._id) {
+        setMedicalRecords([])
+        return
+      }
+
+      try {
+        setRecordsLoading(true)
+        const response = await apiClient.get('/medical-records', { patientId: user._id })
+        if (!cancelled) {
+          setMedicalRecords(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch medical records:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setRecordsLoading(false)
+        }
+      }
+    }
+
+    loadMedicalRecords()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id])
 
   // Calculate statistics
   const stats = {
@@ -197,7 +257,7 @@ const PatientDashboard = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                {appointments === undefined ? (
+                {appointmentsLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="animate-spin rounded-full h-8 w-8 border-4 border-[#2AA8FF] border-t-transparent"></div>
                   </div>
@@ -320,7 +380,7 @@ const PatientDashboard = () => {
                 <CardDescription className="text-[#5C6169]">Latest medical records</CardDescription>
               </CardHeader>
               <CardContent>
-                {medicalRecords === undefined ? (
+                {recordsLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-4 border-[#2AA8FF] border-t-transparent"></div>
                   </div>

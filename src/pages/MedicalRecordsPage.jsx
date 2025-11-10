@@ -1,20 +1,51 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useQuery } from 'convex/react'
-import { api } from '../../convex/_generated/api'
 import TopNavigation from '@/components/layout/TopNavigation'
 import FooterSection from '@/components/sections/FooterSection'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Calendar, User, Download, ArrowLeft } from 'lucide-react'
+import { FileText, Calendar, Download, ArrowLeft } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { apiClient } from '@/lib/api'
 
 const MedicalRecordsPage = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const medicalRecords = useQuery(
-    api.medicalRecords.getRecordsByPatient,
-    user?._id ? { patientId: user._id } : 'skip'
-  )
+  const [medicalRecords, setMedicalRecords] = useState([])
+  const [recordsLoading, setRecordsLoading] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadRecords = async () => {
+      if (!user?._id) {
+        setMedicalRecords([])
+        return
+      }
+
+      try {
+        setRecordsLoading(true)
+        const response = await apiClient.get('/medical-records', { patientId: user._id })
+        if (!cancelled) {
+          setMedicalRecords(response ?? [])
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to fetch medical records:', error)
+        }
+      } finally {
+        if (!cancelled) {
+          setRecordsLoading(false)
+        }
+      }
+    }
+
+    loadRecords()
+
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E7F0FF] via-white to-white">
@@ -33,7 +64,7 @@ const MedicalRecordsPage = () => {
           <p className="text-[#5C6169] mt-2">View all your medical records and prescriptions</p>
         </div>
 
-        {medicalRecords === undefined ? (
+        {recordsLoading ? (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2AA8FF] border-t-transparent"></div>
           </div>

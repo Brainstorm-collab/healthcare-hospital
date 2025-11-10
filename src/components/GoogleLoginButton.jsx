@@ -4,6 +4,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/contexts/ToastContext'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 const GoogleLoginButton = ({ disabled = false, onSuccess }) => {
   const { socialLogin } = useAuth()
@@ -11,10 +19,14 @@ const GoogleLoginButton = ({ disabled = false, onSuccess }) => {
   const navigate = useNavigate()
   const containerRef = useRef(null)
   const [googleButtonWidth, setGoogleButtonWidth] = useState(0)
+  const [pendingUserData, setPendingUserData] = useState(null)
+  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false)
+  const [isProcessingRole, setIsProcessingRole] = useState(false)
+  const [roleError, setRoleError] = useState('')
 
   // Google Client ID - from environment variable or fallback
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 
-    '627920922113-cd13khcn0gg62nssa692gh35451os3hi.apps.googleusercontent.com'
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+    '627920922113-8g6l4p09381cj3cv6hbcsmd3pse2p5u9.apps.googleusercontent.com'
 
   // Check if Google Client ID is configured
   useEffect(() => {
@@ -43,30 +55,40 @@ const GoogleLoginButton = ({ disabled = false, onSuccess }) => {
   // Handle Google Login Success
   const handleGoogleSuccess = async (response) => {
     try {
-      // Decode the JWT token to extract user data
       let userData
       if (response.credential) {
-        // Decode the JWT token from Google
         userData = jwtDecode(response.credential)
       } else {
-        // Fallback to response data if no credential
         userData = response.userData || response
       }
 
-      // Call socialLogin from AuthContext
-      const result = await socialLogin('google', userData)
+      const basePayload = {
+        provider: 'google',
+        providerId: userData.sub || userData.id || `social_${Date.now()}`,
+        email: userData.email || '',
+        name: userData.name || userData.given_name || 'User',
+        picture: userData.picture || userData.profileImage || '',
+      }
+
+      const result = await socialLogin('google', basePayload)
 
       if (result.success) {
-        // Navigate based on user role
         const userRole = result.user?.role
         if (userRole === 'doctor') {
           navigate('/doctor/dashboard')
         } else if (userRole === 'patient') {
           navigate('/patient/dashboard')
         } else {
-          navigate('/') // Default redirect
+          navigate('/')
         }
         onSuccess?.()
+        return
+      }
+
+      if (result.error && result.error.includes('Role must be provided')) {
+        setPendingUserData(basePayload)
+        setRoleError('')
+        setIsRoleDialogOpen(true)
       } else {
         toast.error('Google login failed', result.error || 'Please try again')
       }
@@ -79,6 +101,38 @@ const GoogleLoginButton = ({ disabled = false, onSuccess }) => {
   // Handle Google Login Error
   const handleGoogleError = () => {
     console.error('Google login was cancelled or failed')
+  }
+
+  const handleRoleSelection = async (role) => {
+    if (!pendingUserData) return
+
+    try {
+      setIsProcessingRole(true)
+      setRoleError('')
+
+      const result = await socialLogin('google', { ...pendingUserData, role })
+
+      if (result.success) {
+        const userRole = result.user?.role
+        if (userRole === 'doctor') {
+          navigate('/doctor/dashboard')
+        } else if (userRole === 'patient') {
+          navigate('/patient/dashboard')
+        } else {
+          navigate('/')
+        }
+        onSuccess?.()
+        setIsRoleDialogOpen(false)
+        setPendingUserData(null)
+      } else {
+        setRoleError(result.error || 'Failed to complete social login. Please try again.')
+      }
+    } catch (err) {
+      console.error('Role selection error:', err)
+      setRoleError(err.message || 'Failed to complete social login. Please try again.')
+    } finally {
+      setIsProcessingRole(false)
+    }
   }
 
   return (
@@ -121,6 +175,58 @@ const GoogleLoginButton = ({ disabled = false, onSuccess }) => {
           />
         </div>
       </GoogleOAuthProvider>
+
+      <Dialog open={isRoleDialogOpen} onOpenChange={(open) => {
+        if (!open && !isProcessingRole) {
+          setIsRoleDialogOpen(false)
+          setPendingUserData(null)
+          setRoleError('')
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select account type</DialogTitle>
+            <DialogDescription>
+              Choose whether you want to continue as a patient or a doctor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-3">
+              <Button
+                disabled={isProcessingRole}
+                onClick={() => handleRoleSelection('patient')}
+                className="w-full bg-[#2AA8FF] text-white hover:bg-[#1896f0]"
+              >
+                Continue as Patient
+              </Button>
+              <Button
+                disabled={isProcessingRole}
+                onClick={() => handleRoleSelection('doctor')}
+                variant="outline"
+                className="w-full border-[#2AA8FF] text-[#2AA8FF] hover:bg-[#E6F4FF]"
+              >
+                Continue as Doctor
+              </Button>
+            </div>
+            {roleError && (
+              <p className="text-sm text-red-600 text-center">{roleError}</p>
+            )}
+            <Button
+              variant="ghost"
+              disabled={isProcessingRole}
+              onClick={() => {
+                if (isProcessingRole) return
+                setIsRoleDialogOpen(false)
+                setPendingUserData(null)
+                setRoleError('')
+              }}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                      String          @id
+  name                    String
+  email                   String          @unique
+  password                String?
+  role                    UserRole
+  provider                String?
+  providerId              String?
+  phone                   String?
+  address                 String?
+  profileImage            String?
+  specialization          String?
+  experience              String?
+  consultationFee         Decimal?        @db.Decimal(10, 2)
+  rating                  Decimal?        @db.Decimal(4, 2)
+  patientStories          Int?
+  clinic                  String?
+  location                String?
+  isAvailable             Boolean?
+  availableSlots          Json?
+  createdAt               DateTime
+  updatedAt               DateTime
+  appointmentsAsDoctor    Appointment[]   @relation("DoctorAppointments")
+  appointmentsAsPatient   Appointment[]   @relation("PatientAppointments")
+  medicalRecordsAsDoctor  MedicalRecord[] @relation("DoctorMedicalRecords")
+  medicalRecordsAsPatient MedicalRecord[] @relation("PatientMedicalRecords")
+  notifications           Notification[]
+
+  @@index([role])
+  @@index([specialization])
+  @@map("users")
+}
+
+model Appointment {
+  id                String            @id
+  patientId         String
+  doctorId          String
+  date              DateTime
+  time              String
+  status            AppointmentStatus
+  type              AppointmentType
+  notes             String?
+  prescription      String?
+  consultationNotes String?
+  createdAt         DateTime
+  updatedAt         DateTime
+  doctor            User              @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient           User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  medicalRecord     MedicalRecord?    @relation("AppointmentMedicalRecord")
+  notifications     Notification[]
+
+  @@index([patientId], map: "appointments_patient_id_idx")
+  @@index([doctorId], map: "appointments_doctor_id_idx")
+  @@index([date])
+  @@index([status])
+  @@map("appointments")
+}
+
+model Department {
+  id          String   @id
+  name        String   @unique
+  description String?
+  icon        String?
+  doctorIds   Json?
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@map("departments")
+}
+
+model MedicalRecord {
+  id            String         @id
+  patientId     String
+  doctorId      String
+  appointmentId String?        @unique
+  diagnosis     String
+  reports       Json?
+  prescription  String?
+  notes         String?
+  date          DateTime
+  createdAt     DateTime
+  updatedAt     DateTime
+  appointment   Appointment?   @relation("AppointmentMedicalRecord", fields: [appointmentId], references: [id])
+  doctor        User           @relation("DoctorMedicalRecords", fields: [doctorId], references: [id])
+  patient       User           @relation("PatientMedicalRecords", fields: [patientId], references: [id])
+  notifications Notification[]
+
+  @@index([patientId], map: "medical_records_patient_id_idx")
+  @@index([doctorId], map: "medical_records_doctor_id_idx")
+  @@index([appointmentId], map: "medical_records_appointment_id_idx")
+  @@map("medicalRecords")
+}
+
+model News {
+  id          String    @id
+  title       String
+  category    String
+  content     String
+  author      String
+  image       String?
+  published   Boolean
+  publishedAt DateTime?
+  createdAt   DateTime
+  updatedAt   DateTime
+
+  @@map("news")
+}
+
+model Faq {
+  id        String   @id
+  question  String
+  answer    String
+  category  String?
+  order     Int?
+  createdAt DateTime
+  updatedAt DateTime
+
+  @@map("faqs")
+}
+
+model Notification {
+  id              String           @id
+  userId          String
+  type            NotificationType
+  title           String
+  message         String
+  read            Boolean
+  appointmentId   String?
+  medicalRecordId String?
+  actionUrl       String?
+  createdAt       DateTime
+  readAt          DateTime?
+  appointment     Appointment?     @relation(fields: [appointmentId], references: [id])
+  medicalRecord   MedicalRecord?   @relation(fields: [medicalRecordId], references: [id])
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "notifications_user_id_idx")
+  @@index([userId, read], map: "notifications_user_read_idx")
+  @@index([userId, createdAt], map: "notifications_user_created_at_idx")
+  @@map("notifications")
+}
+
+enum UserRole {
+  PATIENT @map("patient")
+  DOCTOR  @map("doctor")
+}
+
+enum AppointmentStatus {
+  PENDING   @map("pending")
+  CONFIRMED @map("confirmed")
+  COMPLETED @map("completed")
+  CANCELLED @map("cancelled")
+}
+
+enum AppointmentType {
+  ONLINE  @map("online")
+  OFFLINE @map("offline")
+}
+
+enum NotificationType {
+  APPOINTMENT_CREATED   @map("appointment_created")
+  APPOINTMENT_CONFIRMED @map("appointment_confirmed")
+  APPOINTMENT_CANCELLED @map("appointment_cancelled")
+  APPOINTMENT_COMPLETED @map("appointment_completed")
+  APPOINTMENT_REMINDER  @map("appointment_reminder")
+  PRESCRIPTION_ADDED    @map("prescription_added")
+  MEDICAL_RECORD_ADDED  @map("medical_record_added")
+  SYSTEM                @map("system")
+}
